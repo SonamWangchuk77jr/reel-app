@@ -1,7 +1,7 @@
 import React from 'react'
 import { Tabs } from 'expo-router'
 import { images } from '@/constants/image';
-import { Image, View, Text } from 'react-native';
+import { Image, View, Text, Platform } from 'react-native';
 import { icons } from '@/constants/icons';
 
 function TabIcon({ focused, icon, title }: any) {
@@ -26,7 +26,7 @@ function TabIcon({ focused, icon, title }: any) {
     }
 
     return (
-        <View className="size-full justify-center items-center mt-4 rounded-full">
+        <View className="size-full justify-center items-center mt-8 rounded-full ">
             <Image source={icon} tintColor="#fff" className="size-8" />
         </View>
     );
@@ -42,14 +42,14 @@ const _Layout = () => {
                     height: "100%",
                     justifyContent: "center",
                     alignItems: "center",
+
                 },
                 tabBarStyle: {
                     backgroundColor: "#28487B",
-                    position: "absolute",
-                    bottom: 0,
-                    height: 77,
                     borderWidth: 1,
                     borderColor: "#0F0D23",
+                    borderTopColor: '#0F0D23',
+                    height: Platform.OS === 'ios' ? 77 : 77,
                 },
             }}
         >

@@ -10,4 +10,5 @@ export const icons = {
   explore: require("@/assets/icons/explore.png"),
   profile: require("@/assets/icons/profile.png"),
   reward: require("@/assets/icons/reward.png"),
+  logout: require("@/assets/icons/logout.png"),
 };
