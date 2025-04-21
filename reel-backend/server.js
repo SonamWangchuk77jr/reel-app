@@ -5,10 +5,12 @@ const { PORT } = require('./config/config');
 const swaggerUi = require('swagger-ui-express');
 const swaggerSpec = require('./docs/swagger');
 
+
 // Route imports
 const authRoutes = require('./routes/authRoutes');
-// const userRoutes = require('./routes/userRoutes');
-// ...import other routes
+const categoryRoutes = require('./routes/categoryRoutes');
+const reelsRoutes = require('./routes/reelsRoutes');
+const episodesRoutes = require('./routes/reelEpisodesRoutes');
 
 const app = express();
 
@@ -21,8 +23,10 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
 app.use('/api/auth', authRoutes);
-// app.use('/api/users', userRoutes);
-// ...add other routes
+app.use('/api/category', categoryRoutes);
+app.use('/api/reels', reelsRoutes);
+app.use('/api/episodes', episodesRoutes);
+
 
 // Root route
 app.get('/', (req, res) => {

@@ -46,19 +46,37 @@ exports.register = async (req, res) => {
     }
   };
 
-exports.login = async (req, res) => {
-  const { email, password } = req.body;
-  try {
-    const user = await User.findOne({ email });
-    if (!user) return res.status(400).json({ error: 'Invalid credentials' });
-
-    const isMatch = await bcrypt.compare(password, user.password);
-    if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
-
-    const token = jwt.sign({ id: user._id }, JWT_SECRET, { expiresIn: '1h' });
-
-    res.json({ token, user: { id: user._id, username: user.username } });
-  } catch (err) {
-    res.status(500).json({ error: 'Login failed' });
-  }
-};
+  exports.login = async (req, res) => {
+    const { email, password } = req.body;
+    try {
+      const user = await User.findOne({ email });
+      if (!user) return res.status(400).json({ error: 'Invalid credentials' });
+  
+      const isMatch = await bcrypt.compare(password, user.password);
+      if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
+  
+      // 🔐 Include user's role in the token
+      const token = jwt.sign(
+        { id: user._id, role: user.role },
+        JWT_SECRET,
+        { expiresIn: '1h' }
+      );
+  
+      res.json({
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role, // 🧠 Also return the role if needed on client
+          status: user.status,
+          profilePicture: user.profilePicture,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Login failed' });
+    }
+  };

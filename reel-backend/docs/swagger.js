@@ -1,5 +1,7 @@
 const swaggerJSDoc = require('swagger-jsdoc');
+const path = require('path');
 
+// Swagger JSDoc options
 const options = {
   definition: {
     openapi: '3.0.0',
@@ -24,8 +26,11 @@ const options = {
     },
     security: [{ bearerAuth: [] }],
   },
-  apis: ['./routes/*.js'], // location of your route files with Swagger comments
+  // Automatically scan your routes for Swagger JSDoc comments
+  apis: [path.join(__dirname, '../routes/**/*.js')], // Adjust path to your routes folder
 };
 
+// Generate Swagger specification based on the above options
 const swaggerSpec = swaggerJSDoc(options);
+
 module.exports = swaggerSpec;
