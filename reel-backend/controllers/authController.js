@@ -3,6 +3,14 @@ const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { JWT_SECRET } = require('../config/config');
 
+// Helper function to generate token
+const generateToken = (user) => {
+  return jwt.sign(
+    { id: user._id, role: user.role },
+    JWT_SECRET
+    // No expiration time set, token will never expire
+  );
+};
 
 exports.register = async (req, res) => {
     const { name, email, password, profilePicture, role, status } = req.body;
@@ -38,10 +46,27 @@ exports.register = async (req, res) => {
   
       // Save the user to the database
       await user.save();
+
+      // Generate token
+      const token = generateToken(user);
   
-      res.status(201).json({ message: 'User registered successfully' });
+      // Return token and user details (similar to login response)
+      res.status(201).json({
+        token,
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          role: user.role,
+          status: user.status,
+          profilePicture: user.profilePicture,
+          createdAt: user.createdAt,
+          updatedAt: user.updatedAt,
+        },
+        message: 'User registered and logged in successfully'
+      });
     } catch (err) {
-      console.error('Error during registration:', err); // Log the error for debugging
+      console.error('Error during registration:', err);
       res.status(500).json({ error: 'Registration failed, please try again later' });
     }
   };
@@ -55,12 +80,8 @@ exports.register = async (req, res) => {
       const isMatch = await bcrypt.compare(password, user.password);
       if (!isMatch) return res.status(400).json({ error: 'Invalid credentials' });
   
-      // 🔐 Include user's role in the token
-      const token = jwt.sign(
-        { id: user._id, role: user.role },
-        JWT_SECRET,
-        { expiresIn: '1h' }
-      );
+      // Generate token
+      const token = generateToken(user);
   
       res.json({
         token,
@@ -68,7 +89,7 @@ exports.register = async (req, res) => {
           id: user._id,
           name: user.name,
           email: user.email,
-          role: user.role, // 🧠 Also return the role if needed on client
+          role: user.role,
           status: user.status,
           profilePicture: user.profilePicture,
           createdAt: user.createdAt,

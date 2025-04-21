@@ -1,12 +1,11 @@
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator } from "react-native";
 import { useForm, Controller } from "react-hook-form";
-import axios from "axios";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-import { router } from "expo-router";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { loginSchema } from "@/schema/authSchema";
 import Toast from "react-native-toast-message";
 import React from "react";
+import { useAuth } from "@/context/AuthContext";
+import { router } from "expo-router";
 
 export default function Login() {
     const {
@@ -17,35 +16,23 @@ export default function Login() {
         resolver: yupResolver(loginSchema),
     });
     const [loading, setLoading] = React.useState(false);
+    const { login } = useAuth();
 
-
-    const onSubmit = async (data: any) => {
+    const onSubmit = async (data: { email: string; password: string }) => {
         setLoading(true);
         try {
-            const res = await axios.post("http://172.20.10.4:5000/api/auth/login", data);
-            if (res.data.user.role === "Admin") {
-                Toast.show({
-                    type: "error",
-                    text1: "Login Failed",
-                    text2: "Admin cannot access this app",
-                });
-            } else {
-                await AsyncStorage.setItem("token", res.data.token);
-                router.replace("/");
-                console.log("Login successful", res.data);
-                Toast.show({
-                    type: "success",
-                    text1: "Login Successful",
-                    text2: "You have been logged in!",
-                });
-            }
-
+            await login(data.email, data.password);
+            Toast.show({
+                type: "success",
+                text1: "Login Successful",
+                text2: "You have been logged in!",
+            });
         } catch (err: any) {
-            console.log("Error Message: ", err.response?.data.error);
+            console.error("Login Error:", err);
             Toast.show({
                 type: "error",
                 text1: "Login Failed",
-                text2: err.response?.data?.error || "Something went wrong",
+                text2: err.message || "Something went wrong. Please try again.",
             });
         } finally {
             setLoading(false);
@@ -64,10 +51,11 @@ export default function Login() {
                     <>
                         <TextInput
                             className={`
-                                border border-primary bg-white/10 text-[16px] text-primary w-full pl-10 pr-6 pt-5 pb-6 font-bold  rounded-[30px]
+                                border border-primary bg-white/10 text-[16px] text-white w-full pl-10 pr-6 pt-5 pb-6 font-bold  rounded-[30px]
                                 ${errors.email ? "border-red-500 mb-2" : "border-primary mb-4"}
                                 `}
                             placeholder="Email"
+                            placeholderTextColor="#28487B"
                             onChangeText={onChange}
                             value={value}
                         />
@@ -75,7 +63,6 @@ export default function Login() {
                             <Text className="text-red-500 text-sm text-start w-full pl-5 mb-4">{errors.email.message}</Text>
                         )}
                     </>
-
                 )}
             />
 
@@ -87,18 +74,18 @@ export default function Login() {
                     <>
                         <TextInput
                             className={`
-                            border border-primary bg-white/10 text-[16px] text-primary w-full  pl-10 pr-6 pt-5 pb-6 font-bold rounded-[30px]
+                            border border-primary bg-white/10 text-[16px] text-white w-full  pl-10 pr-6 pt-5 pb-6 font-bold rounded-[30px]
                             ${errors.password ? "border-red-500 mb-2" : "border-primary mb-4"}`}
                             placeholder="Password"
                             secureTextEntry
                             onChangeText={onChange}
                             value={value}
+                            placeholderTextColor="#28487B"
                         />
                         {errors.password && (
                             <Text className="text-red-500 text-sm text-start w-full pl-5 mb-4">{errors.password.message}</Text>
                         )}
                     </>
-
                 )}
             />
 
@@ -114,10 +101,9 @@ export default function Login() {
                 )}
             </TouchableOpacity>
 
-
             <View className="mt-10">
                 <Text className="text-white/75 text-center text-base font-semibold">
-                    Don’t have an account?{" "}
+                    Don't have an account?{" "}
                     <Text
                         className="text-primary font-bold"
                         onPress={() => router.push("/(auth)/signup")}

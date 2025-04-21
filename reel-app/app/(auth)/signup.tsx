@@ -5,6 +5,8 @@ import { router } from "expo-router";
 import { yupResolver } from "@hookform/resolvers/yup";
 import { signupSchema } from "@/schema/authSchema";
 import React from "react";
+import { signup } from "@/api/auth";
+import Toast from "react-native-toast-message";
 
 export default function SignUpScreen() {
     const {
@@ -17,10 +19,33 @@ export default function SignUpScreen() {
     const [loading, setLoading] = React.useState(false);
 
 
-    const onSubmit = async (data: any) => {
-        // signup logic
-        console.log("Form Data: ", data);
+    const onSubmit = async (data: { name: string; email: string; password: string }) => {
+        setLoading(true);
+        try {
+            const result = await signup(data);
+            // console.log("Signup successful:", result);
+            Toast.show({
+                type: "success",
+                text1: "Registration Successful",
+                text2: result.message,
+            });
+            // Optionally: Show toast notification or redirect the user
+        } catch (error: any) {
+            if (error.response) {
+                Toast.show({
+                    type: "error",
+                    text1: "Registration Failed",
+                    text2: error.response.data.error,
+                });
+                console.log("Signup failed:", error.response.data.error);
+            } else {
+                console.log("Signup failed:", error.message);
+            }
+        } finally {
+            setLoading(false);
+        }
     };
+
 
     return (
         <View className="flex-1 justify-center items-center px-6 bg-secondary">
@@ -34,10 +59,11 @@ export default function SignUpScreen() {
                     <>
                         <TextInput
                             className={`
-                                border border-primary bg-white/10 text-[16px] text-primary w-full pl-10 pr-6 pt-5 pb-6 font-bold  rounded-[30px]
+                                border border-primary bg-white/10 text-[16px] text-white w-full pl-10 pr-6 pt-5 pb-6 font-bold  rounded-[30px]
                                 ${errors.email ? "border-red-500 mb-2" : "border-primary mb-4"}
                                 `}
                             placeholder="Name"
+                            placeholderTextColor="#28487B"
                             onChangeText={onChange}
                             value={value}
                         />
@@ -57,10 +83,11 @@ export default function SignUpScreen() {
                     <>
                         <TextInput
                             className={`
-                                border border-primary bg-white/10 text-[16px] text-primary w-full pl-10 pr-6 pt-5 pb-6 font-bold  rounded-[30px]
+                                border border-primary bg-white/10 text-[16px] text-white w-full pl-10 pr-6 pt-5 pb-6 font-bold  rounded-[30px]
                                 ${errors.email ? "border-red-500 mb-2" : "border-primary mb-4"}
                                 `}
                             placeholder="Email"
+                            placeholderTextColor="#28487B"
                             onChangeText={onChange}
                             value={value}
                         />
@@ -80,9 +107,10 @@ export default function SignUpScreen() {
                     <>
                         <TextInput
                             className={`
-                            border border-primary bg-white/10 text-[16px] text-primary w-full  pl-10 pr-6 pt-5 pb-6 font-bold rounded-[30px]
+                            border border-primary bg-white/10 text-[16px] text-white w-full  pl-10 pr-6 pt-5 pb-6 font-bold rounded-[30px]
                             ${errors.password ? "border-red-500 mb-2" : "border-primary mb-4"}`}
                             placeholder="Create Password"
+                            placeholderTextColor="#28487B"
                             secureTextEntry
                             onChangeText={onChange}
                             value={value}
@@ -103,9 +131,10 @@ export default function SignUpScreen() {
                     <>
                         <TextInput
                             className={`
-                            border border-primary bg-white/10 text-[16px] text-primary w-full  pl-10 pr-6 pt-5 pb-6 font-bold rounded-[30px]
+                            border border-primary bg-white/10 text-[16px] text-white w-full  pl-10 pr-6 pt-5 pb-6 font-bold rounded-[30px]
                             ${errors.password ? "border-red-500 mb-2" : "border-primary mb-4"}`}
                             placeholder="Confirm Password"
+                            placeholderTextColor="#28487B"
                             secureTextEntry
                             onChangeText={onChange}
                             value={value}

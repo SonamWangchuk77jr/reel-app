@@ -88,6 +88,7 @@ const _Layout = () => {
                 options={{
                     title: "Profile",
                     headerShown: false,
+                    tabBarStyle: { display: 'none' }, // <- hides the tab bar
                     tabBarIcon: ({ focused }) => (
                         <TabIcon focused={focused} icon={icons.profile} title="Profile" />
                     ),
@@ -96,5 +97,4 @@ const _Layout = () => {
         </Tabs>
     )
 }
-
 export default _Layout

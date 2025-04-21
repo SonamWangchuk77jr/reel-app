@@ -1,41 +1,66 @@
 const Reels = require('../models/Reels');
+const User = require('../models/User');
 const cloudinary = require('../config/config').cloudinary;
-const fs = require('fs');
-
+const streamifier = require('streamifier');
 
 exports.createReel = async (req, res) => {
     try {
-      const { name, description, userId } = req.body;
-      const videoFile = req.files?.video?.[0];
-      const coverPhotoFile = req.files?.coverPhoto?.[0];
+      const { title, description } = req.body;
+      const videoFile = req.file;
   
-      if (!videoFile || !coverPhotoFile) {
-        return res.status(400).json({ error: 'Both video and cover photo are required' });
+      if (!videoFile) {
+        return res.status(400).json({ error: 'Video is required' });
+      }
+
+      if (!title || !description) {
+        return res.status(400).json({ error: 'Title and description are required' });
       }
   
-      // Upload video to Cloudinary
-      const videoUpload = await cloudinary.uploader.upload(videoFile.path, {
-        resource_type: 'video',
-        folder: 'reels/videos',
-      });
+      // Get user ID from the authenticated request
+      const userId = req.user.id;
   
-      // Upload cover photo to Cloudinary
-      const imageUpload = await cloudinary.uploader.upload(coverPhotoFile.path, {
-        resource_type: 'image',
-        folder: 'reels/images',
-      });
+      // Verify user exists
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      if (user.status !== 'Active') {
+        return res.status(403).json({ error: 'User account is not active' });
+      }
   
-      // Delete local temp files
-      fs.unlinkSync(videoFile.path);
-      fs.unlinkSync(coverPhotoFile.path);
+      // Create user-specific folder path using the user's ID from database
+      const userFolder = `reels/users/${user._id}/videos`;
   
-      // Save to DB
+      // Create a promise to handle the upload
+      const uploadToCloudinary = (file) => {
+        return new Promise((resolve, reject) => {
+          const uploadStream = cloudinary.uploader.upload_stream(
+            {
+              resource_type: 'video',
+              folder: userFolder,
+            },
+            (error, result) => {
+              if (error) reject(error);
+              else resolve(result);
+            }
+          );
+          
+          // Stream the file buffer directly to Cloudinary
+          streamifier.createReadStream(file.buffer).pipe(uploadStream);
+        });
+      };
+  
+      // Upload video directly to Cloudinary
+      const videoUpload = await uploadToCloudinary(videoFile);
+  
+      // Save to DB with proper user reference
       const newReel = new Reels({
-        name,
+        title,
         description,
-        trailerVideo: videoUpload.secure_url,
-        coverPhoto: imageUpload.secure_url,
-        userId,
+        video: videoUpload.secure_url,
+        userId: user._id,
+        status: 'pending' // Default status
       });
   
       const savedReel = await newReel.save();
@@ -44,12 +69,26 @@ exports.createReel = async (req, res) => {
       console.error(err);
       res.status(500).json({ error: err.message });
     }
-  };
+};
   
 
 exports.getAllReels = async (req, res) => {
   try {
-    const reels = await Reels.find().populate('userId');
+    const reels = await Reels.find()
+      .populate('userId', 'name email profilePicture')
+      .sort({ createdAt: -1 });
+    res.json(reels);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+
+exports.getAllReelsWithStatusApproved = async (req, res) => {
+  try {
+    const reels = await Reels.find({ status: 'approved' })
+      .populate('userId', 'name email profilePicture')
+      .sort({ createdAt: -1 });
     res.json(reels);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -58,8 +97,7 @@ exports.getAllReels = async (req, res) => {
 
 exports.getReelById = async (req, res) => {
   try {
-    const reel = await Reels.findById(req.params.id);
-    if (!reel) return res.status(404).json({ error: 'Reel not found' });
+    const reel = req.reel; // Get reel from middleware
     res.json(reel);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -68,10 +106,23 @@ exports.getReelById = async (req, res) => {
 
 exports.updateReel = async (req, res) => {
   try {
-    const updatedReel = await Reels.findByIdAndUpdate(req.params.id, req.body, { new: true });
+    const reel = req.reel; // Get reel from middleware
+    const userId = req.user.id;
+
+    // Check if user is the owner of the reel
+    if (reel.userId.toString() !== userId) {
+      return res.status(403).json({ error: 'You are not authorized to update this reel' });
+    }
+
+    const { title, description } = req.body;
+
+    if (title) reel.title = title;
+    if (description) reel.description = description;
+
+    const updatedReel = await reel.save();
     res.json(updatedReel);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    res.status(500).json({ error: err.message });
   }
 };
 
@@ -79,6 +130,144 @@ exports.deleteReel = async (req, res) => {
   try {
     await Reels.findByIdAndDelete(req.params.id);
     res.json({ message: 'Reel deleted' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateReelStatus = async (req, res) => {
+  try {
+    const reel = req.reel; // Get reel from middleware
+    const { status } = req.body;
+
+    if (!['approved', 'pending', 'rejected'].includes(status)) {
+      return res.status(400).json({ error: 'Invalid status value' });
+    }
+
+    reel.status = status;
+    const updatedReel = await reel.save();
+    res.json(updatedReel);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.toggleLike = async (req, res) => {
+  try {
+    const reel = req.reel; // Get reel from middleware
+    const userId = req.user.id;
+
+    // Check if user already liked the reel
+    const alreadyLiked = reel.likes.includes(userId);
+    
+    if (alreadyLiked) {
+      // Unlike the reel
+      reel.likes = reel.likes.filter(id => id.toString() !== userId);
+    } else {
+      // Like the reel
+      reel.likes.push(userId);
+    }
+
+    await reel.save();
+    res.json({ 
+      message: alreadyLiked ? 'Reel unliked successfully' : 'Reel liked successfully',
+      reel,
+      action: alreadyLiked ? 'unliked' : 'liked'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.toggleSave = async (req, res) => {
+  try {
+    const reel = req.reel; // Get reel from middleware
+    const userId = req.user.id;
+
+    // Check if user already saved the reel
+    const alreadySaved = reel.saves.includes(userId);
+    
+    if (alreadySaved) {
+      // Remove from saved
+      reel.saves = reel.saves.filter(id => id.toString() !== userId);
+    } else {
+      // Save the reel
+      reel.saves.push(userId);
+    }
+
+    await reel.save();
+    res.json({ 
+      message: alreadySaved ? 'Reel unsaved successfully' : 'Reel saved successfully',
+      reel,
+      action: alreadySaved ? 'unsaved' : 'saved'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getUserSavedReels = async (req, res) => {
+  try {
+    const userId = req.user.id;
+    
+    const savedReels = await Reels.find({ 
+      saves: userId,
+      status: 'approved'
+    })
+    .populate('userId', 'name email profilePicture')
+    .sort({ createdAt: -1 });
+
+    res.json(savedReels);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.removeLike = async (req, res) => {
+  try {
+    const reel = req.reel; // Get reel from middleware
+    const userId = req.user.id;
+
+    // Check if user has liked the reel
+    const hasLiked = reel.likes.includes(userId);
+    
+    if (!hasLiked) {
+      return res.status(400).json({ error: 'You have not liked this reel' });
+    }
+
+    // Remove the like
+    reel.likes = reel.likes.filter(id => id.toString() !== userId);
+    await reel.save();
+
+    res.json({ 
+      message: 'Like removed successfully',
+      reel
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.removeSave = async (req, res) => {
+  try {
+    const reel = req.reel; // Get reel from middleware
+    const userId = req.user.id;
+
+    // Check if user has saved the reel
+    const hasSaved = reel.saves.includes(userId);
+    
+    if (!hasSaved) {
+      return res.status(400).json({ error: 'You have not saved this reel' });
+    }
+
+    // Remove the save
+    reel.saves = reel.saves.filter(id => id.toString() !== userId);
+    await reel.save();
+
+    res.json({ 
+      message: 'Save removed successfully',
+      reel
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

@@ -1,0 +1,724 @@
+openapi: 3.0.0
+info:
+  title: Reel Episodes API
+  description: |
+    # Reel Episodes API Documentation
+    
+    This API provides endpoints for managing episodes within reels. Each episode can contain a video, description, and other metadata.
+    
+    ## Features
+    - Create, read, update, and delete episodes
+    - Video upload and management
+    - Episode metadata management
+    - Like and save functionality
+    - Secure authentication required for write operations
+    
+    ## Authentication
+    All write operations require a valid JWT token in the Authorization header.
+    Format: `Authorization: Bearer <token>`
+    
+    ## Rate Limiting
+    - 100 requests per minute per IP address
+    - Video uploads limited to 100MB per file
+    
+    ## Error Handling
+    The API uses standard HTTP status codes and returns detailed error messages in JSON format.
+  version: 1.0.0
+  contact:
+    name: API Support
+    email: support@reelapp.com
+    url: https://reelapp.com/support
+  license:
+    name: MIT
+    url: https://opensource.org/licenses/MIT
+
+servers:
+  - url: http://localhost:5000/api
+    description: Development server
+  - url: https://api.reelapp.com/api
+    description: Production server
+
+tags:
+  - name: Episodes
+    description: Operations related to reel episodes
+  - name: Episode Interactions
+    description: Operations for liking and saving episodes
+
+paths:
+  /episodes/{reelId}/episodes:
+    post:
+      operationId: createEpisode
+      summary: Create a new episode
+      description: |
+        Creates a new episode for a specific reel. This endpoint requires authentication and supports video upload.
+        
+        ### Required Fields
+        - `episodeNumber`: Episode number (must be unique for the reel)
+        - `episodeName`: Name of the episode
+        - `description`: Detailed description of the episode
+        - `video`: Video file (max 100MB)
+        
+        ### Optional Fields
+        - `caption`: Optional caption for the episode
+        
+        ### Video Requirements
+        - Maximum size: 100MB
+        - Supported formats: MP4, MOV, AVI
+        - Recommended resolution: 1080p
+        - Recommended aspect ratio: 16:9
+      tags:
+        - Episodes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: reelId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+          description: Unique identifier of the reel
+          example: "507f1f77bcf86cd799439011"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              required:
+                - episodeNumber
+                - episodeName
+                - description
+                - video
+              properties:
+                episodeNumber:
+                  type: number
+                  description: Episode number (must be unique for the reel)
+                episodeName:
+                  type: string
+                  minLength: 3
+                  maxLength: 100
+                  description: Name of the episode
+                  example: "Episode 1: The Beginning"
+                description:
+                  type: string
+                  minLength: 10
+                  maxLength: 1000
+                  description: Detailed description of the episode
+                  example: "In this episode, we explore the origins of our story and meet the main characters."
+                caption:
+                  type: string
+                  maxLength: 280
+                  description: Optional caption for the episode
+                  example: "Join us on this exciting journey! #Episode1"
+                video:
+                  type: string
+                  format: binary
+                  description: Video file (max 100MB, supported formats: mp4, mov, avi)
+      responses:
+        '201':
+          description: Episode created successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Episode created successfully"
+                  data:
+                    $ref: '#/components/schemas/Episode'
+        '400':
+          description: Invalid input or missing required fields
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Missing required fields: episodeName, description, video"
+                  errors:
+                    type: array
+                    items:
+                      type: string
+                    example: ["Video is required", "Episode name must be at least 3 characters"]
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Unauthorized - Please provide a valid authentication token"
+        '404':
+          description: Reel not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Reel not found with ID: 507f1f77bcf86cd799439011"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "An unexpected error occurred while creating the episode"
+                  error:
+                    type: string
+                    example: "Error uploading video to Cloudinary"
+
+    get:
+      operationId: getReelEpisodes
+      summary: Get all episodes for a reel
+      description: |
+        Retrieves all episodes for a specific reel. Episodes are returned in chronological order (newest first).
+        
+        ### Response
+        Returns an array of episodes with their metadata and video URLs.
+      tags:
+        - Episodes
+      parameters:
+        - name: reelId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+          description: Unique identifier of the reel
+          example: "507f1f77bcf86cd799439011"
+      responses:
+        '200':
+          description: List of episodes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  count:
+                    type: integer
+                    example: 5
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Episode'
+        '404':
+          description: Reel not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Reel not found with ID: 507f1f77bcf86cd799439011"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "An unexpected error occurred while fetching episodes"
+                  error:
+                    type: string
+                    example: "Database connection error"
+
+  /episodes/{episodeId}:
+    get:
+      operationId: getEpisode
+      summary: Get a particular episode
+      description: |
+        Retrieves detailed information about a specific episode, including its metadata, video URL, and associated reel information.
+        
+        ### Response
+        Returns the episode details along with basic information about the reel it belongs to.
+      tags:
+        - Episodes
+      parameters:
+        - name: episodeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+          description: Unique identifier of the episode
+          example: "507f1f77bcf86cd799439011"
+      responses:
+        '200':
+          description: Episode details
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  data:
+                    $ref: '#/components/schemas/Episode'
+        '404':
+          description: Episode not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Episode not found with ID: 507f1f77bcf86cd799439011"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "An unexpected error occurred while fetching the episode"
+                  error:
+                    type: string
+                    example: "Database connection error"
+
+    put:
+      operationId: updateEpisode
+      summary: Update an episode
+      description: |
+        Updates an existing episode's details. Supports updating metadata and optionally uploading a new video.
+        
+        ### Update Options
+        - Update episode name, description, or caption
+        - Replace the existing video with a new one
+        - All fields are optional - only provided fields will be updated
+        
+        ### Video Requirements
+        - Maximum size: 100MB
+        - Supported formats: MP4, MOV, AVI
+      tags:
+        - Episodes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: episodeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+          description: Unique identifier of the episode
+          example: "507f1f77bcf86cd799439012"
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                episodeName:
+                  type: string
+                  minLength: 3
+                  maxLength: 100
+                  description: New name for the episode
+                  example: "Updated Episode Name"
+                description:
+                  type: string
+                  minLength: 10
+                  maxLength: 1000
+                  description: New description for the episode
+                  example: "Updated episode description with more details"
+                caption:
+                  type: string
+                  maxLength: 280
+                  description: New caption for the episode
+                  example: "Updated caption for the episode"
+                video:
+                  type: string
+                  format: binary
+                  description: New video file to replace the existing one
+      responses:
+        '200':
+          description: Episode updated successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Episode updated successfully"
+                  data:
+                    $ref: '#/components/schemas/Episode'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Unauthorized - Please provide a valid authentication token"
+        '404':
+          description: Episode not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Episode not found with ID: 507f1f77bcf86cd799439012"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "An unexpected error occurred while updating the episode"
+                  error:
+                    type: string
+                    example: "Error uploading video to Cloudinary"
+
+    delete:
+      operationId: deleteEpisode
+      summary: Delete an episode
+      description: |
+        Permanently deletes an episode and its associated video from the system.
+        
+        ### Important Notes
+        - This action cannot be undone
+        - The video will be removed from Cloudinary
+        - All associated metadata will be deleted
+      tags:
+        - Episodes
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: episodeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+          description: Unique identifier of the episode
+          example: "507f1f77bcf86cd799439012"
+      responses:
+        '200':
+          description: Episode deleted successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Episode deleted successfully"
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Unauthorized - Please provide a valid authentication token"
+        '404':
+          description: Episode not found
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "Episode not found with ID: 507f1f77bcf86cd799439012"
+        '500':
+          description: Internal server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: false
+                  message:
+                    type: string
+                    example: "An unexpected error occurred while deleting the episode"
+                  error:
+                    type: string
+                    example: "Database connection error"
+
+  /episodes/{episodeId}/like:
+    post:
+      operationId: toggleLike
+      summary: Toggle like for an episode
+      description: |
+        Toggles the like status for an episode. If the user has already liked the episode, it will be unliked, and vice versa.
+        
+        ### Authentication
+        Requires a valid JWT token in the Authorization header.
+      tags:
+        - Episode Interactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: episodeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+          description: Unique identifier of the episode
+          example: "507f1f77bcf86cd799439011"
+      responses:
+        '200':
+          description: Like status toggled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Episode liked successfully"
+                  data:
+                    $ref: '#/components/schemas/Episode'
+                  action:
+                    type: string
+                    enum: [liked, unliked]
+                    example: "liked"
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+        '404':
+          description: Episode not found
+        '500':
+          description: Internal server error
+
+  /episodes/{episodeId}/save:
+    post:
+      operationId: toggleSave
+      summary: Toggle save for an episode
+      description: |
+        Toggles the save status for an episode. If the user has already saved the episode, it will be unsaved, and vice versa.
+        
+        ### Authentication
+        Requires a valid JWT token in the Authorization header.
+      tags:
+        - Episode Interactions
+      security:
+        - bearerAuth: []
+      parameters:
+        - name: episodeId
+          in: path
+          required: true
+          schema:
+            type: string
+            format: objectId
+          description: Unique identifier of the episode
+          example: "507f1f77bcf86cd799439011"
+      responses:
+        '200':
+          description: Save status toggled successfully
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Episode saved successfully"
+                  data:
+                    $ref: '#/components/schemas/Episode'
+                  action:
+                    type: string
+                    enum: [saved, unsaved]
+                    example: "saved"
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+        '404':
+          description: Episode not found
+        '500':
+          description: Internal server error
+
+  /episodes/saved:
+    get:
+      operationId: getUserSavedEpisodes
+      summary: Get user's saved episodes
+      description: |
+        Retrieves all episodes that the authenticated user has saved.
+        
+        ### Authentication
+        Requires a valid JWT token in the Authorization header.
+        
+        ### Response
+        Returns an array of saved episodes with their metadata and video URLs.
+      tags:
+        - Episode Interactions
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: List of saved episodes
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  count:
+                    type: integer
+                    example: 3
+                  data:
+                    type: array
+                    items:
+                      $ref: '#/components/schemas/Episode'
+        '401':
+          description: Unauthorized - Invalid or missing authentication token
+        '500':
+          description: Internal server error
+
+components:
+  schemas:
+    Episode:
+      type: object
+      description: Represents an episode in a reel
+      properties:
+        _id:
+          type: string
+          format: objectId
+          description: Unique identifier of the episode
+          example: "507f1f77bcf86cd799439011"
+        episodeName:
+          type: string
+          description: Name of the episode
+          example: "Episode 1: The Beginning"
+        description:
+          type: string
+          description: Detailed description of the episode
+          example: "In this episode, we explore the origins of our story and meet the main characters."
+        caption:
+          type: string
+          description: Optional caption for the episode
+          example: "Join us on this exciting journey! #Episode1"
+        videoUrl:
+          type: string
+          format: uri
+          description: URL of the video file in Cloudinary
+          example: "https://res.cloudinary.com/example/video/upload/v1234567890/episode1.mp4"
+        likes:
+          type: array
+          items:
+            type: string
+            format: objectId
+          description: Array of user IDs who liked the episode
+          example: ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012"]
+        saves:
+          type: array
+          items:
+            type: string
+            format: objectId
+          description: Array of user IDs who saved the episode
+          example: ["507f1f77bcf86cd799439011", "507f1f77bcf86cd799439012"]
+        status:
+          type: string
+          enum: [approved, pending, rejected]
+          description: Current status of the episode
+          example: "pending"
+        reelId:
+          type: string
+          format: objectId
+          description: ID of the reel this episode belongs to
+          example: "507f1f77bcf86cd799439012"
+        createdAt:
+          type: string
+          format: date-time
+          description: Timestamp when the episode was created
+          example: "2024-03-20T12:00:00Z"
+        updatedAt:
+          type: string
+          format: date-time
+          description: Timestamp when the episode was last updated
+          example: "2024-03-20T12:00:00Z"
+
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: JWT token for authentication 

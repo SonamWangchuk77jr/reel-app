@@ -2,12 +2,7 @@ import { Text, TouchableOpacity, View, Image } from 'react-native'
 import React from 'react'
 import { icons } from '@/constants/icons'
 
-interface ReelPlayCardProps {
-    title: string;
-    image: any;
-}
-
-const ReelPlayCard = ({ title, image }: ReelPlayCardProps) => {
+export default function ReelPlayCard({ title, image }: any) {
     return (
         <View className="bg-primary w-[160px] h-[200px] rounded-[15px]">
             <Image source={image} className="w-full h-full rounded-[15px]" />
@@ -23,5 +18,5 @@ const ReelPlayCard = ({ title, image }: ReelPlayCardProps) => {
     )
 }
 
-export default ReelPlayCard
+
 

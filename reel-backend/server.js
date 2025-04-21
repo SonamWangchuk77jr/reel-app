@@ -33,9 +33,31 @@ app.get('/', (req, res) => {
   res.send('🎬 API is running...');
 });
 
-// DB connection and server start
-connectDB().then(() => {
-  app.listen(PORT, () => {
-    console.log(`🚀 Server running on http://localhost:${PORT}`);
+// Error handling middleware
+app.use((err, req, res, next) => {
+  console.error(err.stack);
+  res.status(500).json({
+    success: false,
+    error: 'Something went wrong!'
   });
 });
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    success: false,
+    error: 'Route not found'
+  });
+});
+
+// DB connection and server start
+connectDB()
+  .then(() => {
+    app.listen(PORT, () => {
+      console.log(`🚀 Server running on http://localhost:${PORT}`);
+    });
+  })
+  .catch((error) => {
+    console.error('Failed to connect to database:', error);
+    process.exit(1);
+  });

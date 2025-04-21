@@ -1,20 +1,21 @@
 const mongoose = require('mongoose');
 
 const reelEpisodeSchema = new mongoose.Schema({
+  episodeNumber: { type: Number, required: true,unique: true },
   episodeName: { type: String, required: true },
   description: { type: String, required: true },
   caption: { type: String },
   videoUrl: { type: String },
-  likeCount: { type: Number, default: 0 },
-  saveCount: { type: Number, default: 0 },
+  likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  saves: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   status: {
     type: String,
     enum: ['approved', 'pending', 'rejected'],
     default: 'pending'
   },
-  reelId: { type: mongoose.Schema.Types.ObjectId, ref: 'Reel' }, // 👈 reference to Reel
+  reelId: { type: mongoose.Schema.Types.ObjectId, ref: 'Reel' }
 }, {
   timestamps: true
 });
 
-module.exports = mongoose.model('ReelEpisode', reelEpisodeSchema);
+module.exports = mongoose.model('ReelEpisodes', reelEpisodeSchema);

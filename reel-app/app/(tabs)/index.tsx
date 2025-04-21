@@ -1,12 +1,13 @@
 import Logout from "@/components/Logout";
 import ReelPlayCard from "@/components/ReelPlayCard";
 import SliderBanner from "@/components/SliderBanner";
+import { icons } from "@/constants/icons";
 import { images } from "@/constants/image";
 import React from "react";
 import {
   SafeAreaView,
   Text, View, ScrollView,
-  TouchableOpacity
+  TouchableOpacity, Image
 } from "react-native";
 
 
@@ -44,15 +45,11 @@ const trendingHistory = [
 
 export default function Index() {
   return (
-    <SafeAreaView className="bg-secondary flex-1">
-      <ScrollView
-        showsVerticalScrollIndicator={false}
-        showsHorizontalScrollIndicator={false}
-        contentInsetAdjustmentBehavior="never"
-        className="flex-1">
+    <SafeAreaView className="bg-secondary h-full flex-1">
+      <ScrollView className="flex-1 h-full" showsVerticalScrollIndicator={false}>
         {/* Header Section */}
         <View className="px-6 mt-3">
-          <View className="flex-row items-center justify-between mt-4 fixed">
+          <View className="flex-row items-center justify-between mt-4">
             <View>
               <Text className="text-[#B9CDEE]/80 font-bold text-2xl">My Drama</Text>
               <Text className="text-[13px] text-[#B9CDEE]/70 pt-2">Spark Me Tenderly</Text>
@@ -86,7 +83,17 @@ export default function Index() {
           <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
             <View className="flex-row items-center gap-[15px] px-6 mt-4 w-full">
               {mostTrending.map((item) => (
-                <ReelPlayCard key={item.id} title={item.name} image={item.image} />
+                <View key={item.id} className="bg-primary w-[160px] h-[200px] rounded-[15px]">
+                  <Image source={item.image} className="w-full h-full rounded-[15px]" />
+                  <View className="absolute bottom-0 left-0 right-0  px-3 py-4">
+                    <Text className="text-white text-[15px] font-font-[300]">{item.name}</Text>
+                  </View>
+                  <View className="absolute bottom-10 right-0 px-3 py-4">
+                    <TouchableOpacity className="bg-primary rounded-full p-3">
+                      <Image source={icons.play} tintColor="#ffff" className="size-4" />
+                    </TouchableOpacity>
+                  </View>
+                </View>
               ))}
             </View>
           </ScrollView>
@@ -103,6 +110,7 @@ export default function Index() {
               {mostTrendingDrama.map((item) => (
                 <ReelPlayCard key={item.id} title={item.name} image={item.image} />
               ))}
+              <ReelPlayCard title="Drama" image={images.cham} />
             </View>
           </ScrollView>
         </View>

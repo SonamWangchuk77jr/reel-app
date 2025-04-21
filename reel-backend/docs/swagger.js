@@ -1,5 +1,10 @@
 const swaggerJSDoc = require('swagger-jsdoc');
 const path = require('path');
+const YAML = require('yamljs');
+const swaggerUi = require('swagger-ui-express');
+
+// Load YAML files
+const episodesYAML = YAML.load(path.join(__dirname, '../swagger/reelEpisodes.yaml'));
 
 // Swagger JSDoc options
 const options = {
@@ -32,5 +37,9 @@ const options = {
 
 // Generate Swagger specification based on the above options
 const swaggerSpec = swaggerJSDoc(options);
+
+// Merge YAML files with the generated spec
+Object.assign(swaggerSpec.paths, episodesYAML.paths);
+Object.assign(swaggerSpec.components.schemas, episodesYAML.components.schemas);
 
 module.exports = swaggerSpec;

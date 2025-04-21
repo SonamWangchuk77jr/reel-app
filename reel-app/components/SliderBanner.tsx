@@ -42,8 +42,10 @@ const SliderBanner = () => {
     // Listen to scroll position to update current index
     useEffect(() => {
         const listenerId = scrollX.addListener(({ value }) => {
-            const index = Math.floor(value / TOTAL_ITEM_WIDTH);
-            setCurrentIndex(index);
+            const index = Math.round(value / TOTAL_ITEM_WIDTH);
+            if (index >= 0 && index < images.length) {
+                setCurrentIndex(index);
+            }
         });
 
         return () => {
@@ -68,6 +70,12 @@ const SliderBanner = () => {
                     [{ nativeEvent: { contentOffset: { x: scrollX } } }],
                     { useNativeDriver: true }
                 )}
+                onMomentumScrollEnd={(event) => {
+                    const index = Math.round(event.nativeEvent.contentOffset.x / TOTAL_ITEM_WIDTH);
+                    if (index >= 0 && index < images.length) {
+                        setCurrentIndex(index);
+                    }
+                }}
             >
                 {images.map((source, index) => {
                     const inputRange = [

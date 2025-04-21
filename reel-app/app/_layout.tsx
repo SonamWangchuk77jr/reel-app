@@ -1,48 +1,29 @@
 import { StatusBar } from "react-native";
 import "./global.css";
-import { router, Stack } from "expo-router";
-import React, { useEffect } from "react";
+import { Stack } from "expo-router";
+import React from "react";
 import Toast from "react-native-toast-message";
-import AsyncStorage from "@react-native-async-storage/async-storage";
-
+import { AuthProvider } from "@/context/AuthContext";
 
 export default function RootLayout() {
-  useEffect(() => {
-    const checkToken = async () => {
-      try {
-        const token = await AsyncStorage.getItem("token");
-        const loggedIn = !!token;
-
-        if (loggedIn) {
-          router.replace("/");
-        } else {
-          router.replace("/(auth)/login");
-        }
-      } catch (error) {
-        console.error("Auth check error:", error);
-        router.replace("/(auth)/login");
-      }
-    };
-    checkToken();
-  }, []);
   return (
-    <>
-      <StatusBar hidden={false} />
+    <AuthProvider>
+      <StatusBar hidden={false} backgroundColor={"#0C1319"} barStyle="light-content" />
       <Stack>
         <Stack.Screen
-          name="(tabs)"
+          name="(initial)/index"
           options={{ headerShown: false }}
         />
         <Stack.Screen
           name="(auth)"
-          options={{
-            headerShown: false,
-            presentation: 'modal'
-          }}
+          options={{ headerShown: false, presentation: 'fullScreenModal' }}
+        />
+        <Stack.Screen
+          name="(tabs)"
+          options={{ headerShown: false }}
         />
       </Stack>
       <Toast />
-    </>
-
+    </AuthProvider>
   );
 }

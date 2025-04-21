@@ -11,4 +11,6 @@ export const icons = {
   profile: require("@/assets/icons/profile.png"),
   reward: require("@/assets/icons/reward.png"),
   logout: require("@/assets/icons/logout.png"),
+  rewardPoints: require("@/assets/icons/reward-points.png"),
+  status:require("@/assets/icons/completed.png"),
 };
