@@ -23,6 +23,14 @@ export const login = async (formData: {
         const response = await axios.post(`${baseURL}/api/auth/login`, formData);
         return response.data;
     } catch (error: any) {
-        throw new Error(error.response?.data?.message || "Failed to login");
+        if (axios.isAxiosError(error)) {
+            const errorMessage =
+                error.response?.data?.error ||
+                error.response?.data?.message ||
+                "Login failed with server error";
+            throw new Error(errorMessage);
+        } else {
+            throw new Error("An unexpected error occurred");
+        }
     }
 };

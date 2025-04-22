@@ -77,8 +77,7 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
                 router.replace('/(tabs)');
             }
         } catch (error: any) {
-            console.error('Login error:', error);
-            throw new Error(error.message || 'Failed to login');
+            throw new Error(error || 'Invalid email or password');
         }
     };
 

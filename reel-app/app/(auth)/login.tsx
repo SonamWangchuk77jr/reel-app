@@ -30,7 +30,7 @@ export default function Login() {
                 text2: "You have been logged in!",
             });
         } catch (err: any) {
-            console.error("Login Error:", err);
+            console.log("Login Error:", err);
             Toast.show({
                 type: "error",
                 text1: "Login Failed",
