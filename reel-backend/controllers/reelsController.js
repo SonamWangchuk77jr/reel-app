@@ -61,7 +61,7 @@ exports.createReel = async (req, res) => {
         category,
         video: videoUpload.secure_url,
         userId: user._id,
-        status: 'pending' // Default status
+        status: 'approved' // Default status
       });
   
       const savedReel = await newReel.save();
