@@ -169,6 +169,33 @@ router.get('/:id', validateReel, reelsController.getReelById);
 
 /**
  * @swagger
+ * /reels/user/{userId}:
+ *   get:
+ *     summary: Get all reels by user ID
+ *     tags: [Reels]
+ *     parameters:
+ *       - in: path
+ *         name: userId
+ *         required: true
+ *         schema:
+ *           type: string
+ *         description: User ID
+ *     responses:
+ *       200:
+ *         description: List of reels by user
+ *         content:
+ *           application/json:
+ *             schema:
+ *               type: array
+ *               items:
+ *                 $ref: '#/components/schemas/Reel'
+ *       500:
+ *         description: Server error
+ */
+router.get('/user/:userId', reelsController.getAllReelsByUserId);
+
+/**
+ * @swagger
  * /reels/{id}:
  *   put:
  *     summary: Update a reel

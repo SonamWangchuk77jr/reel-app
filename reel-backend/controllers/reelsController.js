@@ -5,15 +5,15 @@ const streamifier = require('streamifier');
 
 exports.createReel = async (req, res) => {
     try {
-      const { title, description } = req.body;
+      const { title, description,category } = req.body;
       const videoFile = req.file;
   
       if (!videoFile) {
         return res.status(400).json({ error: 'Video is required' });
       }
 
-      if (!title || !description) {
-        return res.status(400).json({ error: 'Title and description are required' });
+      if (!title || !description || !category) {
+        return res.status(400).json({ error: 'All fields are required' });
       }
   
       // Get user ID from the authenticated request
@@ -58,6 +58,7 @@ exports.createReel = async (req, res) => {
       const newReel = new Reels({
         title,
         description,
+        category,
         video: videoUpload.secure_url,
         userId: user._id,
         status: 'pending' // Default status
@@ -83,15 +84,31 @@ exports.getAllReels = async (req, res) => {
   }
 };
 
+exports.getAllReelsByUserId = async (req, res) => {
+  const { userId } = req.params; // or req.query, depending on how you pass it
 
-exports.getAllReelsWithStatusApproved = async (req, res) => {
   try {
-    const reels = await Reels.find({ status: 'approved' })
+    const reels = await Reels.find({ userId })
       .populate('userId', 'name email profilePicture')
       .sort({ createdAt: -1 });
+
     res.json(reels);
   } catch (err) {
     res.status(500).json({ error: err.message });
+  }
+};
+
+
+exports.getAllReelsWithStatusApproved = async (req, res) => {
+  try {
+    const reels = await Reels.find({ status: 'approved' })  // filter only by status
+      .populate('userId', 'name email profilePicture')      // populate the userId field correctly
+      .sort({ createdAt: -1 });
+
+    res.status(200).json(reels);
+  } catch (err) {
+    console.error('Error fetching approved reels:', err);
+    res.status(500).json({ error: 'Internal server error' });
   }
 };
 
