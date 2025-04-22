@@ -3,6 +3,7 @@ import axios from "axios";
 const baseURL = process.env.EXPO_PUBLIC_API_URL;
 
 export interface Reel {
+    category: string;
     _id: string;
     title: string;
     description: string;
@@ -61,6 +62,15 @@ export const getReelByUserId = async ( userId: string): Promise<Reel[]> => {
         return response.data;
     } catch (error: any) {
         throw new Error(error.response?.data?.message || "Failed to get reel by user ID");
+    }
+};
+
+export const getReelById = async (reelId: string): Promise<Reel> => {
+    try {
+        const response = await axios.get(`${baseURL}/api/reels/${reelId}`);
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to get reel");
     }
 };
 

@@ -1,142 +1,47 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Image, Dimensions, StyleSheet, ScrollView } from 'react-native';
-import * as ImagePicker from 'expo-image-picker';
-import { router } from 'expo-router';
+import React, { useState, useRef } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import { router, useLocalSearchParams } from 'expo-router';
 import { Stack } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
-import { reelsUploadSchema } from '@/schema/reelsSchema';
+import { episodesSchema } from '@/schema/episodesSchema';
+import { Video, ResizeMode } from 'expo-av';
+import * as ImagePicker from 'expo-image-picker';
+import { Feather } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
-import { getReelsCategory } from '@/api/reelsCategory';
-import DropDownPicker from 'react-native-dropdown-picker';
-import * as yup from 'yup';
-import { Ionicons } from '@expo/vector-icons';
-import { Video, AVPlaybackStatus, ResizeMode } from 'expo-av';
 import { useAuth } from '@/context/AuthContext';
-import { createReel } from '@/api/reels';
-import { useReels } from '@/context/ReelsContext';
+import { createEpisode } from '@/api/episodes';
+import { useQueryClient } from '@tanstack/react-query';
+import type { InferType } from 'yup';
 
+type EpisodeFormData = InferType<typeof episodesSchema>;
 
-type ReelsFormData = yup.InferType<typeof reelsUploadSchema>;
-
-interface Category {
-    _id: string;
-    name: string;
-}
-
-interface DropdownItem {
-    label: string;
-    value: string;
-}
-
-interface VideoStatus {
-    isPlaying: boolean;
-    positionMillis: number;
-    durationMillis: number;
-}
-
-const { width } = Dimensions.get('window');
-
-export default function ReelsUpload() {
-    const { token, user } = useAuth();
-    const { refreshReels } = useReels();
+export default function EpisodeUpload() {
+    const { reelId } = useLocalSearchParams<{ reelId: string }>();
+    const { token } = useAuth();
+    const queryClient = useQueryClient();
     const [isLoading, setIsLoading] = useState(false);
-    const [categories, setCategories] = useState<Category[]>([]);
-    const [isLoadingCategories, setIsLoadingCategories] = useState(true);
-    const [open, setOpen] = useState(false);
-    const [value, setValue] = useState<string | null>(null);
-    const [items, setItems] = useState<DropdownItem[]>([]);
     const [selectedVideo, setSelectedVideo] = useState<ImagePicker.ImagePickerAsset | null>(null);
-    const [videoStatus, setVideoStatus] = useState<AVPlaybackStatus | null>(null);
     const [uploadProgress, setUploadProgress] = useState(0);
+    const videoRef = useRef<Video>(null);
 
     const {
         control,
         handleSubmit,
         formState: { errors },
         setValue: setFormValue,
-    } = useForm<ReelsFormData>({
-        resolver: yupResolver(reelsUploadSchema),
+    } = useForm<EpisodeFormData>({
+        resolver: yupResolver(episodesSchema),
         defaultValues: {
-            title: '',
+            episodeNumber: 0,
+            episodeName: '',
             description: '',
+            caption: '',
             video: undefined,
-            category: '',
         },
     });
-
-    const videoRef = useRef<Video>(null);
-
-    const styles = StyleSheet.create({
-        videoContainer: {
-            width: '100%',
-            aspectRatio: 16 / 9,
-            borderRadius: 8,
-            overflow: 'hidden',
-        },
-        video: {
-            width: '100%',
-            height: '100%',
-        },
-        overlay: {
-            position: 'absolute',
-            top: 0,
-            left: 0,
-            right: 0,
-            bottom: 0,
-            backgroundColor: 'rgba(0, 0, 0, 0.7)',
-            justifyContent: 'center',
-            alignItems: 'center',
-            zIndex: 1000,
-        },
-        progressContainer: {
-            backgroundColor: 'rgba(0, 0, 0, 0.8)',
-            padding: 20,
-            borderRadius: 10,
-            alignItems: 'center',
-        },
-        progressText: {
-            color: '#fff',
-            marginTop: 10,
-            fontSize: 16,
-        },
-    });
-
-    useEffect(() => {
-        const fetchCategories = async () => {
-            try {
-                const response = await getReelsCategory();
-                if (response && response.data && Array.isArray(response.data)) {
-                    setCategories(response.data);
-                    const formattedItems = response.data.map((category: Category) => ({
-                        label: category.name,
-                        value: category.name
-                    }));
-                    setItems(formattedItems);
-                } else {
-                    console.error('Invalid categories response:', response);
-                    Toast.show({
-                        type: 'error',
-                        text1: 'Error',
-                        text2: 'Invalid categories data received',
-                    });
-                }
-            } catch (error) {
-                console.error('Error fetching categories:', error);
-                Toast.show({
-                    type: 'error',
-                    text1: 'Error',
-                    text2: 'Failed to load categories. Please try again.',
-                });
-            } finally {
-                setIsLoadingCategories(false);
-            }
-        };
-
-        fetchCategories();
-    }, []);
 
     const pickVideo = async () => {
         try {
@@ -154,8 +59,8 @@ export default function ReelsUpload() {
                 mediaTypes: ['videos'],
                 allowsEditing: true,
                 quality: 1,
-                videoMaxDuration: 60, // 1 minute max
-                aspect: [9, 16], // Vertical video aspect ratio
+                videoMaxDuration: 60,
+                aspect: [9, 16],
             });
 
             if (!result.canceled) {
@@ -172,15 +77,16 @@ export default function ReelsUpload() {
         }
     };
 
-    const onSubmit = async (data: ReelsFormData) => {
-        if (!token || !user) {
+    const onSubmit = async (data: EpisodeFormData) => {
+        if (!token) {
             Toast.show({
                 type: 'error',
                 text1: 'Authentication Error',
-                text2: 'Please login to upload reels',
+                text2: 'Please login to upload episodes',
             });
             return;
         }
+        console.log("reelId", reelId);
 
         if (!selectedVideo) {
             Toast.show({
@@ -191,24 +97,26 @@ export default function ReelsUpload() {
             return;
         }
 
-        if (!data.category) {
+        if (!reelId) {
             Toast.show({
                 type: 'error',
                 text1: 'Validation Error',
-                text2: 'Please select a category',
+                text2: 'Reel ID is missing',
             });
             return;
         }
 
         setIsLoading(true);
         setUploadProgress(0);
+
         try {
             const formData = new FormData();
-            formData.append('title', data.title);
+            formData.append('episodeNumber', data.episodeNumber.toString());
+            formData.append('episodeName', data.episodeName);
             formData.append('description', data.description);
-            formData.append('category', data.category);
+            formData.append('caption', data.caption);
+            formData.append('reelId', reelId);
 
-            // Append the video file with correct properties
             formData.append('video', {
                 uri: selectedVideo.uri,
                 type: selectedVideo.mimeType || 'video/mp4',
@@ -226,20 +134,20 @@ export default function ReelsUpload() {
                 });
             }, 1000);
 
-            await createReel(token, formData);
+            await createEpisode(token, reelId, formData);
             setUploadProgress(100);
 
-            // Refresh the reels list after successful upload
-            await refreshReels(user.id);
+            // Invalidate the episodes query to refresh the list
+            await queryClient.invalidateQueries({ queryKey: ['episodes', reelId] });
 
             Toast.show({
                 type: 'success',
                 text1: 'Success',
-                text2: 'Reel uploaded successfully!',
+                text2: 'Episode uploaded successfully!',
             });
             router.back();
         } catch (error: any) {
-            console.error('Upload Error:', error);
+            console.log('Upload Error:', error);
             Toast.show({
                 type: 'error',
                 text1: 'Upload Failed',
@@ -255,11 +163,11 @@ export default function ReelsUpload() {
         <>
             <Stack.Screen
                 options={{
-                    title: 'Upload Reel',
+                    title: 'Create New Episode',
                     headerStyle: {
                         backgroundColor: '#0C1319',
                     },
-                    headerTintColor: '#ffff',
+                    headerTintColor: '#fff',
                     headerTitleStyle: {
                         fontWeight: 'bold',
                     },
@@ -282,8 +190,8 @@ export default function ReelsUpload() {
                         </View>
                     </View>
                 )}
-                <View className="flex-1 p-4">
-                    <View className="mb-10">
+                <ScrollView className="flex-1 p-4">
+                    <View className="mb-6">
                         <TouchableOpacity
                             onPress={pickVideo}
                             className="bg-gray-800 p-4 rounded-lg border border-dashed border-gray-600 items-center justify-center"
@@ -297,16 +205,15 @@ export default function ReelsUpload() {
                                         useNativeControls
                                         resizeMode={ResizeMode.COVER}
                                         isLooping
-                                        onPlaybackStatusUpdate={(status: AVPlaybackStatus) => setVideoStatus(status)}
                                     />
                                     <View className="flex-row items-center justify-center my-5">
-                                        <Ionicons name="videocam" size={24} color="white" />
+                                        <Feather name="video" size={24} color="white" />
                                         <Text className="text-white ml-2">Change Video</Text>
                                     </View>
                                 </View>
                             ) : (
                                 <View className="items-center" style={{ height: 200 }}>
-                                    <Ionicons name="videocam-outline" size={48} color="white" />
+                                    <Feather name="video" size={48} color="white" />
                                     <Text className="text-white mt-2">Select Video</Text>
                                     <Text className="text-gray-400 text-sm mt-1">Max 60 seconds</Text>
                                 </View>
@@ -318,20 +225,39 @@ export default function ReelsUpload() {
                     </View>
 
                     <Controller
-                        name="title"
+                        name="episodeNumber"
                         control={control}
                         render={({ field: { onChange, value } }) => (
                             <>
                                 <TextInput
-                                    placeholder="Enter reel title"
-                                    value={value}
-                                    onChangeText={onChange}
-                                    className={`border border-gray-300 rounded-lg p-4 mb-2 text-white ${errors.title ? 'border-red-500' : ''
-                                        }`}
+                                    placeholder="Episode Number"
+                                    value={value.toString()}
+                                    onChangeText={(text) => onChange(parseInt(text) || 0)}
+                                    keyboardType="numeric"
+                                    className={`border border-gray-300 rounded-lg p-4 mb-2 text-white ${errors.episodeNumber ? 'border-red-500' : ''}`}
                                     placeholderTextColor="#666"
                                 />
-                                {errors.title && (
-                                    <Text className="text-red-500 text-sm mb-4">{errors.title.message}</Text>
+                                {errors.episodeNumber && (
+                                    <Text className="text-red-500 text-sm mb-4">{errors.episodeNumber.message}</Text>
+                                )}
+                            </>
+                        )}
+                    />
+
+                    <Controller
+                        name="episodeName"
+                        control={control}
+                        render={({ field: { onChange, value } }) => (
+                            <>
+                                <TextInput
+                                    placeholder="Episode Name"
+                                    value={value}
+                                    onChangeText={onChange}
+                                    className={`border border-gray-300 rounded-lg p-4 mb-2 text-white ${errors.episodeName ? 'border-red-500' : ''}`}
+                                    placeholderTextColor="#666"
+                                />
+                                {errors.episodeName && (
+                                    <Text className="text-red-500 text-sm mb-4">{errors.episodeName.message}</Text>
                                 )}
                             </>
                         )}
@@ -343,13 +269,12 @@ export default function ReelsUpload() {
                         render={({ field: { onChange, value } }) => (
                             <>
                                 <TextInput
-                                    placeholder="Enter reel description"
+                                    placeholder="Description"
                                     value={value}
                                     onChangeText={onChange}
                                     multiline
                                     numberOfLines={4}
-                                    className={`border border-gray-300 rounded-lg p-4 mb-2 text-white ${errors.description ? 'border-red-500' : ''
-                                        }`}
+                                    className={`border border-gray-300 rounded-lg p-4 mb-2 text-white ${errors.description ? 'border-red-500' : ''}`}
                                     placeholderTextColor="#666"
                                 />
                                 {errors.description && (
@@ -359,62 +284,71 @@ export default function ReelsUpload() {
                         )}
                     />
 
-                    <View className="mb-4 z-10">
-                        {isLoadingCategories ? (
-                            <ActivityIndicator color="white" />
-                        ) : (
+                    <Controller
+                        name="caption"
+                        control={control}
+                        render={({ field: { onChange, value } }) => (
                             <>
-                                <DropDownPicker
-                                    open={open}
+                                <TextInput
+                                    placeholder="Caption"
                                     value={value}
-                                    items={items}
-                                    setOpen={setOpen}
-                                    setValue={setValue}
-                                    setItems={setItems}
-                                    placeholder="Select a category"
-                                    style={{
-                                        backgroundColor: 'transparent',
-                                        borderColor: errors.category ? '#ef4444' : '#374151',
-                                        borderWidth: 1,
-                                        borderRadius: 8,
-                                    }}
-                                    textStyle={{
-                                        color: 'white',
-                                    }}
-                                    placeholderStyle={{
-                                        color: '#666',
-                                    }}
-                                    dropDownContainerStyle={{
-                                        backgroundColor: '#1f2937',
-                                        borderColor: '#374151',
-                                    }}
-                                    onChangeValue={(value) => {
-                                        if (value) {
-                                            setFormValue('category', value);
-                                            setValue(value);
-                                        }
-                                    }}
+                                    onChangeText={onChange}
+                                    className={`border border-gray-300 rounded-lg p-4 mb-2 text-white ${errors.caption ? 'border-red-500' : ''}`}
+                                    placeholderTextColor="#666"
                                 />
-                                {errors.category && (
-                                    <Text className="text-red-500 text-sm mt-2">{errors.category.message}</Text>
+                                {errors.caption && (
+                                    <Text className="text-red-500 text-sm mb-4">{errors.caption.message}</Text>
                                 )}
                             </>
                         )}
-                    </View>
+                    />
 
                     <TouchableOpacity
                         onPress={handleSubmit(onSubmit)}
+                        className="bg-primary py-4 rounded-lg mt-4"
                         disabled={isLoading}
-                        className="bg-blue-500 p-4 rounded-lg mt-4"
                     >
-                        {isLoading ? (
-                            <ActivityIndicator color="white" />
-                        ) : (
-                            <Text className="text-white text-center font-bold">Upload Reel</Text>
-                        )}
+                        <Text className="text-white text-center font-bold text-lg">
+                            {isLoading ? 'Uploading...' : 'Upload Episode'}
+                        </Text>
                     </TouchableOpacity>
-                </View>
+                </ScrollView>
             </KeyboardAvoidingView>
         </>
     );
 }
+
+const styles = StyleSheet.create({
+    videoContainer: {
+        width: '100%',
+        aspectRatio: 9 / 16,
+        borderRadius: 8,
+        overflow: 'hidden',
+    },
+    video: {
+        width: '100%',
+        height: '100%',
+    },
+    overlay: {
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        right: 0,
+        bottom: 0,
+        backgroundColor: 'rgba(0, 0, 0, 0.7)',
+        justifyContent: 'center',
+        alignItems: 'center',
+        zIndex: 1000,
+    },
+    progressContainer: {
+        backgroundColor: 'rgba(0, 0, 0, 0.8)',
+        padding: 20,
+        borderRadius: 10,
+        alignItems: 'center',
+    },
+    progressText: {
+        color: '#fff',
+        marginTop: 10,
+        fontSize: 16,
+    },
+}); 

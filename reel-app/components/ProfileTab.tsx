@@ -4,6 +4,7 @@ import { Feather } from '@expo/vector-icons';
 import { getReelByUserId } from '@/api/reels';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useReels } from '@/context/ReelsContext';
+import { router } from 'expo-router';
 
 const { width } = Dimensions.get('window');
 const COLUMN_COUNT = 3;
@@ -223,8 +224,9 @@ const TabView = ({ userId }: { userId: string }) => {
                                                 width: ITEM_SIZE,
                                                 height: ITEM_SIZE,
                                             }}
-                                            className="overflow-hidden rounded-md bg-white"
+                                            className="overflow-hidden bg-white"
                                             activeOpacity={0.8}
+                                            onPress={() => router.push(`/reels/${reel._id}`)}
                                         >
                                             <VideoItem videoUrl={reel.video} />
                                         </TouchableOpacity>

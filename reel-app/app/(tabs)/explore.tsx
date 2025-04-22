@@ -107,18 +107,24 @@ const VideoItem = ({ item, index, liked, onLike, onShare, onFollow, isVisible }:
                 className="absolute bottom-[100px] left-0 right-0 h-40 justify-end pb-4 pr-10"
             >
                 <View className="p-4">
-                    <View className="flex-row items-center justify-center mb-3">
-                        {item.userId.profilePicture === "" && (
-                            <View className="w-10 h-10 rounded-full mr-3 bg-secondary/20 border border-white/50 flex items-center justify-center" >
+                    <View className="flex-row mb-3">
+                        {!item.userId.profilePicture ? (
+                            <View className="w-10 h-10 rounded-full bg-secondary/20 border border-white/50 flex items-center justify-center mr-3">
                                 <Text className="text-white text-lg font-bold">
-                                    {item.userId.name.split(' ').slice(0, 2).map(n => n[0]).join('')}
+                                    {item.userId.name
+                                        .split(' ')
+                                        .slice(0, 2)
+                                        .map((n) => n[0])
+                                        .join('')}
                                 </Text>
                             </View>
+                        ) : (
+                            <Image
+                                source={{ uri: item.userId.profilePicture }}
+                                className="w-10 h-10 rounded-full mr-3"
+                            />
                         )}
-                        {item.userId.profilePicture !== "" && (
-                            <Image source={{ uri: item.userId.profilePicture }} className="w-10 h-10 rounded-full mr-3" />
-                        )}
-                        <View className="flex-1 flex-row gap-4 items-center">
+                        <View className="flex-row gap-4 items-center">
                             <Text className="text-white text-base font-bold">
                                 {item.userId.name}
                             </Text>
