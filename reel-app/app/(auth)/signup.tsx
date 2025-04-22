@@ -7,6 +7,7 @@ import { signupSchema } from "@/schema/authSchema";
 import React from "react";
 import { signup } from "@/api/auth";
 import Toast from "react-native-toast-message";
+import { Ionicons } from '@expo/vector-icons';
 
 export default function SignUpScreen() {
     const {
@@ -17,19 +18,21 @@ export default function SignUpScreen() {
         resolver: yupResolver(signupSchema),
     });
     const [loading, setLoading] = React.useState(false);
+    const [showPassword, setShowPassword] = React.useState(false);
+    const [showConfirmPassword, setShowConfirmPassword] = React.useState(false);
 
 
     const onSubmit = async (data: { name: string; email: string; password: string }) => {
         setLoading(true);
         try {
             const result = await signup(data);
-            // console.log("Signup successful:", result);
             Toast.show({
                 type: "success",
                 text1: "Registration Successful",
                 text2: result.message,
             });
-            // Optionally: Show toast notification or redirect the user
+            // Navigate to onboarding screen after successful registration
+            router.replace("/(auth)/onboarding");
         } catch (error: any) {
             if (error.response) {
                 Toast.show({
@@ -105,21 +108,32 @@ export default function SignUpScreen() {
                 defaultValue=""
                 render={({ field: { onChange, value } }) => (
                     <>
-                        <TextInput
-                            className={`
-                            border border-primary bg-white/10 text-[16px] text-white w-full  pl-10 pr-6 pt-5 pb-6 font-bold rounded-[30px]
-                            ${errors.password ? "border-red-500 mb-2" : "border-primary mb-4"}`}
-                            placeholder="Create Password"
-                            placeholderTextColor="#28487B"
-                            secureTextEntry
-                            onChangeText={onChange}
-                            value={value}
-                        />
+                        <View className="relative w-full">
+                            <TextInput
+                                className={`
+                                border border-primary bg-white/10 text-[16px] text-white w-full pl-10 pr-12 pt-5 pb-6 font-bold rounded-[30px]
+                                ${errors.password ? "border-red-500 mb-2" : "border-primary mb-4"}`}
+                                placeholder="Create Password"
+                                placeholderTextColor="#28487B"
+                                secureTextEntry={!showPassword}
+                                onChangeText={onChange}
+                                value={value}
+                            />
+                            <TouchableOpacity
+                                className="absolute right-4 top-5"
+                                onPress={() => setShowPassword(!showPassword)}
+                            >
+                                <Ionicons
+                                    name={showPassword ? "eye" : "eye-off"}
+                                    size={24}
+                                    color="#28487B"
+                                />
+                            </TouchableOpacity>
+                        </View>
                         {errors.password && (
                             <Text className="text-red-500 text-sm text-start w-full pl-5 mb-4">{errors.password.message}</Text>
                         )}
                     </>
-
                 )}
             />
 
@@ -129,21 +143,32 @@ export default function SignUpScreen() {
                 defaultValue=""
                 render={({ field: { onChange, value } }) => (
                     <>
-                        <TextInput
-                            className={`
-                            border border-primary bg-white/10 text-[16px] text-white w-full  pl-10 pr-6 pt-5 pb-6 font-bold rounded-[30px]
-                            ${errors.password ? "border-red-500 mb-2" : "border-primary mb-4"}`}
-                            placeholder="Confirm Password"
-                            placeholderTextColor="#28487B"
-                            secureTextEntry
-                            onChangeText={onChange}
-                            value={value}
-                        />
+                        <View className="relative w-full">
+                            <TextInput
+                                className={`
+                                border border-primary bg-white/10 text-[16px] text-white w-full pl-10 pr-12 pt-5 pb-6 font-bold rounded-[30px]
+                                ${errors.password ? "border-red-500 mb-2" : "border-primary mb-4"}`}
+                                placeholder="Confirm Password"
+                                placeholderTextColor="#28487B"
+                                secureTextEntry={!showConfirmPassword}
+                                onChangeText={onChange}
+                                value={value}
+                            />
+                            <TouchableOpacity
+                                className="absolute right-4 top-5"
+                                onPress={() => setShowConfirmPassword(!showConfirmPassword)}
+                            >
+                                <Ionicons
+                                    name={showConfirmPassword ? "eye" : "eye-off"}
+                                    size={24}
+                                    color="#28487B"
+                                />
+                            </TouchableOpacity>
+                        </View>
                         {errors.confirmPassword && (
                             <Text className="text-red-500 text-sm text-start w-full pl-5 mb-4">{errors.confirmPassword.message}</Text>
                         )}
                     </>
-
                 )}
             />
             <Controller

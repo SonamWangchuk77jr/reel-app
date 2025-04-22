@@ -6,6 +6,7 @@ import Toast from "react-native-toast-message";
 import React from "react";
 import { useAuth } from "@/context/AuthContext";
 import { router } from "expo-router";
+import { Ionicons } from "@expo/vector-icons";
 
 export default function Login() {
     const {
@@ -16,6 +17,7 @@ export default function Login() {
         resolver: yupResolver(loginSchema),
     });
     const [loading, setLoading] = React.useState(false);
+    const [showPassword, setShowPassword] = React.useState(false);
     const { login } = useAuth();
 
     const onSubmit = async (data: { email: string; password: string }) => {
@@ -72,16 +74,28 @@ export default function Login() {
                 defaultValue=""
                 render={({ field: { onChange, value } }) => (
                     <>
-                        <TextInput
-                            className={`
-                            border border-primary bg-white/10 text-[16px] text-white w-full  pl-10 pr-6 pt-5 pb-6 font-bold rounded-[30px]
-                            ${errors.password ? "border-red-500 mb-2" : "border-primary mb-4"}`}
-                            placeholder="Password"
-                            secureTextEntry
-                            onChangeText={onChange}
-                            value={value}
-                            placeholderTextColor="#28487B"
-                        />
+                        <View className="relative w-full">
+                            <TextInput
+                                className={`
+                                border border-primary bg-white/10 text-[16px] text-white w-full pl-10 pr-12 pt-5 pb-6 font-bold rounded-[30px]
+                                ${errors.password ? "border-red-500 mb-2" : "border-primary mb-4"}`}
+                                placeholder="Create Password"
+                                placeholderTextColor="#28487B"
+                                secureTextEntry={!showPassword}
+                                onChangeText={onChange}
+                                value={value}
+                            />
+                            <TouchableOpacity
+                                className="absolute right-4 top-5"
+                                onPress={() => setShowPassword(!showPassword)}
+                            >
+                                <Ionicons
+                                    name={showPassword ? "eye" : "eye-off"}
+                                    size={24}
+                                    color="#28487B"
+                                />
+                            </TouchableOpacity>
+                        </View>
                         {errors.password && (
                             <Text className="text-red-500 text-sm text-start w-full pl-5 mb-4">{errors.password.message}</Text>
                         )}

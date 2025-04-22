@@ -20,7 +20,7 @@ const { height } = Dimensions.get('window');
 const profile = () => {
     const [keyboardVisible, setKeyboardVisible] = useState(false);
     const { user, isLoading } = useAuth();
-    console.log(user);
+    // console.log(user?.id);
 
     if (isLoading) {
         return <Text>Loading...</Text>;
@@ -159,7 +159,7 @@ const profile = () => {
                     </View>
                 </View>
                 {/* Profile Tab view  */}
-                <TabView />
+                <TabView userId={user?.id} />
 
             </ScrollView>
             {!keyboardVisible && (
@@ -171,7 +171,10 @@ const profile = () => {
                             </TouchableOpacity>
                         </View>
                         <View className='w-[48%]'>
-                            <TouchableOpacity className='w-full h-[50px] bg-[#B9CDEE]/20 rounded-[30px] flex justify-center items-center'>
+                            <TouchableOpacity
+                                className='w-full h-[50px] bg-[#B9CDEE]/20 rounded-[30px] flex justify-center items-center'
+                                onPress={() => router.push('/reels/reels-upload')}
+                            >
                                 <Text className='text-white text-[16px]'>UPLOAD</Text>
                             </TouchableOpacity>
                         </View>

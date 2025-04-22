@@ -1,17 +1,74 @@
-import React, { useState } from 'react';
-import { View, Text, TouchableOpacity, Image, Animated, Dimensions } from 'react-native';
+import React, { useState, useEffect } from 'react';
+import { View, Text, TouchableOpacity, Dimensions, Animated } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { images } from '@/constants/image';
+import { getReelByUserId } from '@/api/reels';
+import { VideoView, useVideoPlayer } from 'expo-video';
+import { useReels } from '@/context/ReelsContext';
 
 const { width } = Dimensions.get('window');
 const COLUMN_COUNT = 3;
 const GAP = 4;
 const PADDING = 16;
-const IMAGE_SIZE = (width - (PADDING * 2) - (GAP * (COLUMN_COUNT - 1))) / COLUMN_COUNT;
+const ITEM_SIZE = Math.floor((width - (PADDING * 2) - (GAP * (COLUMN_COUNT - 1))) / COLUMN_COUNT);
 
-const TabView = () => {
+const VideoItem = ({ videoUrl }: { videoUrl: string }) => {
+    const player = useVideoPlayer(videoUrl, (p) => {
+        p.loop = true;
+        p.muted = true;
+        // @ts-ignore - Native configuration
+        p.style = {
+            resizeMode: 'cover',
+            width: '100%',
+            height: '100%'
+        };
+    });
+
+    return (
+        <View style={{
+            width: ITEM_SIZE,
+            height: ITEM_SIZE,
+            overflow: 'hidden',
+            backgroundColor: 'gray'
+        }}>
+            <VideoView
+                player={player}
+                style={{
+                    width: ITEM_SIZE * 2,
+                    height: ITEM_SIZE * 2,
+                    position: 'absolute',
+                    top: -ITEM_SIZE * 0.5,
+                    left: -ITEM_SIZE * 0.5,
+                    transform: [{ scale: 1.2 }]
+                }}
+                pointerEvents="none"
+            />
+        </View>
+    );
+};
+
+const TabView = ({ userId }: { userId: string }) => {
     const [activeTab, setActiveTab] = useState<'post' | 'list'>('post');
     const [tabAnimation] = useState(new Animated.Value(0));
+    const [loading, setLoading] = useState(true);
+    const { reels, setReels, refreshReels } = useReels();
+
+    console.log('Reels:', reels);
+    console.log('User ID:', userId);
+
+    useEffect(() => {
+        const fetchReels = async () => {
+            try {
+                const fetchedReels = await getReelByUserId(userId);
+                setReels(fetchedReels);
+            } catch (error) {
+                console.error('Error fetching reels:', error);
+            } finally {
+                setLoading(false);
+            }
+        };
+
+        fetchReels();
+    }, [userId, setReels]);
 
     const handleTabChange = (tab: 'post' | 'list') => {
         setActiveTab(tab);
@@ -33,24 +90,42 @@ const TabView = () => {
         ],
     };
 
-    // Create array of images
-    const imageArray = [
-        images.bhudhaPoint,
-        images.cham,
-        images.paroTakstang,
-        images.cham2,
-        images.gankarPhuensum,
-        images.bhudhaPoint
-    ];
-
-    // Group images into rows of 3
-    const imageRows = [];
-    for (let i = 0; i < imageArray.length; i += COLUMN_COUNT) {
-        imageRows.push(imageArray.slice(i, i + COLUMN_COUNT));
+    // Group reels into rows of 3
+    const reelRows = [];
+    for (let i = 0; i < reels.length; i += COLUMN_COUNT) {
+        reelRows.push(reels.slice(i, i + COLUMN_COUNT));
     }
 
+    const renderSkeleton = () => {
+        const skeletonRows = [];
+        for (let i = 0; i < 3; i++) {
+            skeletonRows.push(
+                <View
+                    key={i}
+                    className="flex-row flex-wrap"
+                    style={{
+                        gap: GAP,
+                        marginBottom: i !== 2 ? GAP : 0
+                    }}
+                >
+                    {[...Array(COLUMN_COUNT)].map((_, j) => (
+                        <View
+                            key={j}
+                            style={{
+                                width: ITEM_SIZE,
+                                height: ITEM_SIZE,
+                            }}
+                            className="bg-primary rounded-md animate-pulse"
+                        />
+                    ))}
+                </View>
+            );
+        }
+        return skeletonRows;
+    };
+
     return (
-        <View className='w-full bg-black'>
+        <View className='w-full'>
             {/* Post & List Tabs */}
             <View className='flex-row justify-center items-center mt-4'>
                 <View className='w-[85%]'>
@@ -93,7 +168,7 @@ const TabView = () => {
                             </View>
                         </TouchableOpacity>
 
-                        {/* Post Tab */}
+                        {/* Reels Post Tab */}
                         <TouchableOpacity
                             onPress={() => handleTabChange('post')}
                             className='flex-1 items-center'
@@ -125,34 +200,38 @@ const TabView = () => {
             <View>
                 {activeTab === 'post' ? (
                     <View style={{ padding: PADDING }}>
-                        {imageRows.map((row, rowIndex) => (
-                            <View
-                                key={rowIndex}
-                                className="flex-row justify-between"
-                                style={{
-                                    gap: GAP,
-                                    marginBottom: rowIndex !== imageRows.length - 1 ? GAP : 0
-                                }}
-                            >
-                                {row.map((imgSrc, colIndex) => (
-                                    <TouchableOpacity
-                                        key={`${rowIndex}-${colIndex}`}
-                                        style={{
-                                            width: IMAGE_SIZE,
-                                            height: IMAGE_SIZE,
-                                        }}
-                                        className="overflow-hidden rounded-md"
-                                        activeOpacity={0.8}
-                                    >
-                                        <Image
-                                            source={imgSrc}
-                                            style={{ width: '100%', height: '100%' }}
-                                            resizeMode="cover"
-                                        />
-                                    </TouchableOpacity>
-                                ))}
+                        {loading ? (
+                            renderSkeleton()
+                        ) : reelRows.length === 0 ? (
+                            <View className="flex-1 justify-center items-center min-h-[200px]">
+                                <Text className="text-white text-lg">No reels found</Text>
                             </View>
-                        ))}
+                        ) : (
+                            reelRows.map((row, rowIndex) => (
+                                <View
+                                    key={rowIndex}
+                                    className="flex-row flex-wrap"
+                                    style={{
+                                        gap: GAP,
+                                        marginBottom: rowIndex !== reelRows.length - 1 ? GAP : 0
+                                    }}
+                                >
+                                    {row.map((reel, colIndex) => (
+                                        <TouchableOpacity
+                                            key={`${rowIndex}-${colIndex}`}
+                                            style={{
+                                                width: ITEM_SIZE,
+                                                height: ITEM_SIZE,
+                                            }}
+                                            className="overflow-hidden rounded-md bg-white"
+                                            activeOpacity={0.8}
+                                        >
+                                            <VideoItem videoUrl={reel.video} />
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                            ))
+                        )}
                     </View>
                 ) : (
                     <View className="px-6 mt-6">
