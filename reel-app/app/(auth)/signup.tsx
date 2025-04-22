@@ -32,7 +32,7 @@ export default function SignUpScreen() {
                 text2: result.message,
             });
             // Navigate to onboarding screen after successful registration
-            router.replace("/(auth)/onboarding");
+            router.replace("/(auth)/login");
         } catch (error: any) {
             if (error.response) {
                 Toast.show({
