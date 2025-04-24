@@ -173,7 +173,7 @@ const profile = () => {
                         <View className='w-[48%]'>
                             <TouchableOpacity
                                 className='w-full h-[50px] bg-[#B9CDEE]/20 rounded-[30px] flex justify-center items-center'
-                                onPress={() => router.push('/reels/reels-upload')}
+                                onPress={() => router.push('/upload/reels-upload')}
                             >
                                 <Text className='text-white text-[16px]'>UPLOAD</Text>
                             </TouchableOpacity>
