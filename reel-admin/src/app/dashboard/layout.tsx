@@ -1,10 +1,11 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import Link from "next/link"
-import { usePathname } from "next/navigation"
+import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
+import Image from "next/image"
 import {
     LayoutDashboard,
     Users,
@@ -13,9 +14,22 @@ import {
     Menu,
     X,
     ChevronRight,
-    Search,
-    Bell,
+    ChartBarStacked,
+    Video,
+    ListVideo,
 } from "lucide-react"
+type UserType = {
+    token: string;
+    user: {
+        id: string;
+        name: string;
+        email: string;
+        role: string;
+        status: string;
+        createdAt: string;
+        updatedAt: string;
+    };
+};
 
 const sidebarItems = [
     {
@@ -29,11 +43,27 @@ const sidebarItems = [
         icon: Users,
     },
     {
+        title: "Reel Categories",
+        href: "/dashboard/categories",
+        icon: ChartBarStacked,
+    },
+    {
+        title: "Content Moderation",
+        href: "/dashboard/content-moderation",
+        icon: Video,
+    },
+    {
+        title: "Ads Management",
+        href: "/dashboard/ads-management",
+        icon: ListVideo,
+    },
+    {
         title: "Settings",
         href: "/dashboard/settings",
         icon: Settings,
     },
 ]
+
 
 export default function DashboardLayout({
     children,
@@ -41,52 +71,44 @@ export default function DashboardLayout({
     children: React.ReactNode
 }) {
     const [isSidebarOpen, setIsSidebarOpen] = useState(true)
+    const [user, setUser] = useState<UserType | null>(null);
     const pathname = usePathname()
+    const router = useRouter()
+
+    useEffect(() => {
+        // Check for user in sessionStorage
+        const userStr = typeof window !== 'undefined' ? sessionStorage.getItem('user') : null;
+        if (!userStr) {
+            router.push('/login');
+            return;
+        }
+        try {
+            const user = JSON.parse(userStr);
+            setUser(user);
+            if (!user.user || user.user.role !== 'Admin') {
+                sessionStorage.removeItem('user');
+                router.push('/login');
+            }
+        } catch {
+            sessionStorage.removeItem('user');
+            router.push('/login');
+        }
+    }, [router]);
 
     return (
         <div className="min-h-screen bg-gray-50">
-            {/* Top Navigation Bar */}
-            <header className="sticky top-0 z-50 w-full border-b bg-white">
-                <div className="container flex h-16 items-center px-4">
-                    <Button
-                        variant="ghost"
-                        size="icon"
-                        className="mr-2 lg:hidden"
-                        onClick={() => setIsSidebarOpen(!isSidebarOpen)}
-                    >
-                        {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
-                    </Button>
-                    <div className="flex flex-1 items-center justify-between">
-                        <div className="flex items-center space-x-4">
-                            <h1 className="text-xl font-semibold">Admin Dashboard</h1>
-                        </div>
-                        <div className="flex items-center space-x-4">
-                            <div className="relative">
-                                <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-gray-500" />
-                                <input
-                                    type="search"
-                                    placeholder="Search..."
-                                    className="h-9 w-[200px] rounded-md border border-gray-200 bg-white px-8 text-sm focus:outline-none focus:ring-1 focus:ring-primary"
-                                />
-                            </div>
-                            <Button variant="ghost" size="icon">
-                                <Bell className="h-5 w-5" />
-                            </Button>
-                            <div className="h-8 w-8 rounded-full bg-primary"></div>
-                        </div>
-                    </div>
-                </div>
-            </header>
-
             <div className="flex">
                 {/* Sidebar */}
                 <aside
                     className={cn(
-                        "fixed top-16 z-30 h-[calc(100vh-4rem)] w-64 border-r bg-white transition-transform",
+                        "fixed top-0 z-30 h-[calc(100vh)] w-64 border-r bg-[#0C1319] transition-transform",
                         isSidebarOpen ? "translate-x-0" : "-translate-x-full",
                         "lg:translate-x-0"
                     )}
                 >
+                    <div className="flex items-center justify-center py-3">
+                        <Image src="/logo-white.svg" alt="logo" width={100} height={100} />
+                    </div>
                     <div className="h-full py-6">
                         <nav className="grid gap-1 px-2">
                             {sidebarItems.map((item) => (
@@ -94,7 +116,7 @@ export default function DashboardLayout({
                                     key={item.href}
                                     href={item.href}
                                     className={cn(
-                                        "flex items-center gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100",
+                                        "flex items-center justify-start gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100",
                                         pathname === item.href
                                             ? "bg-gray-100 text-primary"
                                             : "text-gray-500"
@@ -113,8 +135,8 @@ export default function DashboardLayout({
                                 variant="ghost"
                                 className="w-full justify-start gap-3 text-sm font-medium text-gray-500 hover:bg-gray-100 hover:text-gray-900"
                                 onClick={() => {
-                                    // TODO: Implement logout
-                                    window.location.href = "/login"
+                                    sessionStorage.removeItem('user');
+                                    router.push('/login');
                                 }}
                             >
                                 <LogOut className="h-4 w-4" />
@@ -131,6 +153,44 @@ export default function DashboardLayout({
                         isSidebarOpen ? "lg:ml-64" : "lg:ml-0"
                     )}
                 >
+                    {/* Top Navigation Bar */}
+                    <header className="sticky top-0 z-50 w-full border-b bg-white">
+                        <div className="container flex h-16 items-center px-8">
+                            <Button
+                                variant="ghost"
+                                size="icon"
+                                className="mr-2 lg:hidden"
+                                onClick={() => setIsSidebarOpen(!isSidebarOpen)}
+                            >
+                                {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
+                            </Button>
+                            <div className="flex flex-1 items-center justify-between">
+                                <div className="flex items-center space-x-4">
+                                    {/* Page Title */}
+                                    <h1 className="text-xl font-semibold">
+                                        {sidebarItems.find(item => item.href === pathname)?.title || "Dashboard"}
+                                    </h1>
+                                </div>
+
+                                {/* Admin Avatar */}
+                                <div className="flex items-center space-x-4">
+                                    <div>
+                                        <h6 className="text-sm font-semibold">{user?.user?.name}</h6>
+                                        <p className="text-xs text-gray-500">Admin</p>
+                                    </div>
+                                    {/* Admin Avatar */}
+                                    <div className="h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center">
+                                        <span className="uppercase">
+                                            {user?.user?.name && (() => {
+                                                const words = user.user.name.trim().split(' ').filter(Boolean);
+                                                return words.length ? words[0][0] + (words.length > 1 ? words[words.length - 1][0] : '') : '';
+                                            })()}
+                                        </span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </header>
                     <div className="container p-8">{children}</div>
                 </main>
             </div>

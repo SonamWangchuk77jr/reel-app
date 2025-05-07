@@ -3,6 +3,21 @@
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
 import { Users, DollarSign, Activity, TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react"
 import { cn } from "@/lib/utils"
+import { useEffect, useState } from "react"
+import { useRouter } from "next/navigation"
+
+type UserType = {
+    token: string;
+    user: {
+        id: string;
+        name: string;
+        email: string;
+        role: string;
+        status: string;
+        createdAt: string;
+        updatedAt: string;
+    };
+};
 
 const stats = [
     {
@@ -40,10 +55,26 @@ const stats = [
 ]
 
 export default function DashboardPage() {
+    const [user, setUser] = useState<UserType | null>(null);
+    const router = useRouter();
+    useEffect(() => {
+        const userStr = typeof window !== 'undefined' ? sessionStorage.getItem('user') : null;
+        if (!userStr) {
+            router.push('/login');
+            return;
+        }
+        try {
+            const user = JSON.parse(userStr);
+            setUser(user);
+        } catch {
+            sessionStorage.removeItem('user');
+            router.push('/login');
+        }
+    }, []);
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Hello, {user?.user?.name}</h1>
                 <p className="text-gray-500">Welcome to your admin dashboard</p>
             </div>
 
