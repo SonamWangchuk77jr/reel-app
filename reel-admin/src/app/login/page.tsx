@@ -19,6 +19,7 @@ import {
     FormMessage,
 } from "@/components/ui/form"
 import { Input } from "@/components/ui/input"
+import { toast } from "sonner"
 
 const formSchema = z.object({
     email: z.string().email({
@@ -48,6 +49,7 @@ export default function LoginForm() {
             try {
                 const user = JSON.parse(userStr);
                 if (user.user && user.user.role === 'Admin') {
+                    toast.success('Logged in successfully');
                     router.push('/dashboard');
                 }
             } catch { }
@@ -75,7 +77,9 @@ export default function LoginForm() {
 
             if (!response.ok) {
                 const errorData = await response.json();
-                console.log("Login error:", errorData.error);
+                toast.error('Login failed', {
+                    description: errorData.error,
+                });
                 setLoading(false);
                 return;
             }
@@ -84,7 +88,9 @@ export default function LoginForm() {
 
             // Check if user is Admin
             if (data.user?.role !== "Admin") {
-                alert("Access denied: Only Admins can log in.");
+                toast.error('Login failed', {
+                    description: 'Invalid credentials',
+                });
                 setLoading(false);
                 return;
             }

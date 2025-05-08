@@ -70,7 +70,7 @@ export default function DashboardPage() {
             sessionStorage.removeItem('user');
             router.push('/login');
         }
-    }, []);
+    }, [router]);
     return (
         <div className="space-y-8">
             <div>

@@ -6,6 +6,7 @@ import { usePathname, useRouter } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import Image from "next/image"
+
 import {
     LayoutDashboard,
     Users,
@@ -18,18 +19,7 @@ import {
     Video,
     ListVideo,
 } from "lucide-react"
-type UserType = {
-    token: string;
-    user: {
-        id: string;
-        name: string;
-        email: string;
-        role: string;
-        status: string;
-        createdAt: string;
-        updatedAt: string;
-    };
-};
+import { getAuthUser } from "@/lib/auth";
 
 const sidebarItems = [
     {
@@ -64,6 +54,19 @@ const sidebarItems = [
     },
 ]
 
+type UserType = {
+    _id: string;
+    name: string;
+    email: string;
+    role: string;
+    status: string;
+    createdAt: string;
+    updatedAt: string;
+    profilePicture?: string;
+    password?: string;
+    __v?: number;
+};
+
 
 export default function DashboardLayout({
     children,
@@ -76,27 +79,20 @@ export default function DashboardLayout({
     const router = useRouter()
 
     useEffect(() => {
-        // Check for user in sessionStorage
-        const userStr = typeof window !== 'undefined' ? sessionStorage.getItem('user') : null;
-        if (!userStr) {
-            router.push('/login');
-            return;
-        }
-        try {
-            const user = JSON.parse(userStr);
-            setUser(user);
-            if (!user.user || user.user.role !== 'Admin') {
-                sessionStorage.removeItem('user');
+        const getUser = async () => {
+            const userData = await getAuthUser();
+            const user = userData as unknown as UserType;
+            if (user && user.role !== 'Admin') {
                 router.push('/login');
             }
-        } catch {
-            sessionStorage.removeItem('user');
-            router.push('/login');
+            setUser(user);
         }
+        getUser();
     }, [router]);
 
     return (
         <div className="min-h-screen bg-gray-50">
+
             <div className="flex">
                 {/* Sidebar */}
                 <aside
@@ -175,18 +171,29 @@ export default function DashboardLayout({
                                 {/* Admin Avatar */}
                                 <div className="flex items-center space-x-4">
                                     <div>
-                                        <h6 className="text-sm font-semibold">{user?.user?.name}</h6>
+                                        <h6 className="text-sm font-semibold capitalize">{user?.name}</h6>
                                         <p className="text-xs text-gray-500">Admin</p>
                                     </div>
                                     {/* Admin Avatar */}
-                                    <div className="h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center">
-                                        <span className="uppercase">
-                                            {user?.user?.name && (() => {
-                                                const words = user.user.name.trim().split(' ').filter(Boolean);
-                                                return words.length ? words[0][0] + (words.length > 1 ? words[words.length - 1][0] : '') : '';
-                                            })()}
-                                        </span>
-                                    </div>
+                                    {user?.profilePicture ? (
+                                        // eslint-disable-next-line @next/next/no-img-element
+                                        <img
+                                            src={user.profilePicture}
+                                            alt={user.name}
+                                            width={40}
+                                            height={40}
+                                            className="h-10 w-10 rounded-full object-cover"
+                                        />
+                                    ) : (
+                                        <div className="h-10 w-10 rounded-full bg-primary text-white flex items-center justify-center">
+                                            <span className="uppercase">
+                                                {user?.name && (() => {
+                                                    const words = user.name.trim().split(' ').filter(Boolean);
+                                                    return words.length ? words[0][0] + (words.length > 1 ? words[words.length - 1][0] : '') : '';
+                                                })()}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
                         </div>
