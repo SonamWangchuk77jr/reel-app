@@ -1,5 +1,6 @@
 const ReelEpisodes = require('../models/ReelEpisodes');
 const Reels = require('../models/Reels');
+const User = require('../models/User');
 const cloudinary = require('../config/config').cloudinary;
 const streamifier = require('streamifier');
 
@@ -155,6 +156,7 @@ exports.getUserSavedEpisodes = async (req, res) => {
 exports.createEpisode = async (req, res) => {
   try {
     const { reelId } = req.params;
+    const userId = req.user.id;
     const { episodeNumber, episodeName, description, caption } = req.body;
     const videoFile = req.file;
 
@@ -164,6 +166,12 @@ exports.createEpisode = async (req, res) => {
         message: 'Video is required'
       });
     }
+
+     // Verify user exists
+     const user = await User.findById(userId);
+     if (!user) {
+       return res.status(404).json({ error: 'User not found' });
+     }
 
     if (!episodeNumber || !episodeName || !description) {
       return res.status(400).json({
@@ -221,6 +229,7 @@ exports.createEpisode = async (req, res) => {
       episodeName,
       description,
       caption,
+      userId: user._id,
       videoUrl: videoUpload.secure_url,
       reelId
     });
@@ -239,7 +248,7 @@ exports.createEpisode = async (req, res) => {
   }
 };
 
-// Get all episodes for a reel
+// Get all episodes for a reel by reel id
 exports.getReelEpisodes = async (req, res) => {
   try {
     const { reelId } = req.params;
@@ -273,6 +282,27 @@ exports.getReelEpisodes = async (req, res) => {
       count: processedEpisodes.length,
       data: processedEpisodes
     });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error getting episodes',
+      error: error.message
+    });
+  }
+};
+
+// Get all episodes list
+exports.getAllEpisodes = async (req, res) => {
+  try {
+    const episodes = await ReelEpisodes.find()
+      .sort({ createdAt: -1 })
+      .populate('userId', 'name email')
+      .populate('reelId', 'title description')
+      .populate('likes', 'username')
+      .populate('saves', 'username')
+      .lean();
+    
+    res.status(200).json(episodes);
   } catch (error) {
     res.status(500).json({
       success: false,
@@ -347,6 +377,31 @@ exports.updateEpisode = async (req, res) => {
   }
 };
 
+// Update episode status
+exports.updateEpisodeStatus = async (req, res) => {
+  try {
+    const { episodeId } = req.params;
+    const { status } = req.body;
+
+    const episode = await ReelEpisodes.findByIdAndUpdate(episodeId, { status }, { new: true });
+
+    if (!episode) {
+      return res.status(404).json({
+        success: false,
+        message: 'Episode not found'
+      });
+    }
+
+    res.status(200).json(episode);
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error updating episode status',
+      error: error.message
+    });
+  }
+};
+
 // Delete an episode
 exports.deleteEpisode = async (req, res) => {
   try {
@@ -387,6 +442,7 @@ exports.getEpisode = async (req, res) => {
     }
 
     const episode = await ReelEpisodes.findById(episodeId)
+      .populate('userId', 'name email')
       .populate('reelId', 'title description')
       .populate('likes', 'username')
       .populate('saves', 'username')
@@ -403,10 +459,7 @@ exports.getEpisode = async (req, res) => {
     episode.likes = Array.isArray(episode.likes) ? episode.likes : [];
     episode.saves = Array.isArray(episode.saves) ? episode.saves : [];
 
-    res.status(200).json({
-      success: true,
-      data: episode
-    });
+    res.status(200).json(episode);
   } catch (error) {
     console.error('Error in getEpisode:', error);
     res.status(500).json({

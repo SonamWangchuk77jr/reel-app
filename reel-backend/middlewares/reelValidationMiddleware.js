@@ -14,12 +14,7 @@ const validateReel = async (req, res, next) => {
         if (!reel) {
             return res.status(404).json({ error: 'Reel not found' });
         }
-
-        // Check if reel is approved (for certain operations)
-        if (req.method === 'GET' && reel.status !== 'approved') {
-            return res.status(403).json({ error: 'This reel is not approved for viewing' });
-        }
-
+        
         // Attach the reel to the request for use in controllers
         req.reel = reel;
         next();

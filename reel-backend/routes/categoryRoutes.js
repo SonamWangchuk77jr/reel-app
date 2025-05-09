@@ -5,9 +5,23 @@ const {
     getCategories, 
     getCategoryById, 
     updateCategory, 
-    deleteCategory 
+    deleteCategory,
+    totalCategories
 } = require('../controllers/categoryController');
 const { authenticate, authorize } = require('../middlewares/authMiddleware');
+
+router.post('/add', authenticate, authorize('Admin'), createCategory);
+router.get('/getAll', getCategories);
+router.get('/get/:id', getCategoryById);
+router.put('/update/:id', authenticate, authorize('Admin'), updateCategory);
+router.delete('/delete/:id', authenticate, authorize('Admin'), deleteCategory);
+router.get('/total', authenticate, authorize('Admin'), totalCategories);
+
+module.exports = router;
+
+
+
+
 
 /**
  * @swagger
@@ -33,7 +47,6 @@ const { authenticate, authorize } = require('../middlewares/authMiddleware');
  *           format: date-time
  *           description: The date when the category was last updated
  */
-
 /**
  * @swagger
  * /category/add:
@@ -70,8 +83,6 @@ const { authenticate, authorize } = require('../middlewares/authMiddleware');
  *       500:
  *         description: Server error
  */
-router.post('/add', authenticate, authorize('Admin'), createCategory);
-
 /**
  * @swagger
  * /category/getAll:
@@ -94,8 +105,6 @@ router.post('/add', authenticate, authorize('Admin'), createCategory);
  *       500:
  *         description: Server error
  */
-router.get('/getAll', authenticate, getCategories);
-
 /**
  * @swagger
  * /category/get/{id}:
@@ -127,8 +136,6 @@ router.get('/getAll', authenticate, getCategories);
  *       500:
  *         description: Server error
  */
-router.get('/get/:id', authenticate, getCategoryById);
-
 /**
  * @swagger
  * /category/update/{id}:
@@ -174,7 +181,6 @@ router.get('/get/:id', authenticate, getCategoryById);
  *       500:
  *         description: Server error
  */
-router.put('/update/:id', authenticate, authorize('Admin'), updateCategory);
 
 /**
  * @swagger
@@ -213,6 +219,17 @@ router.put('/update/:id', authenticate, authorize('Admin'), updateCategory);
  *       500:
  *         description: Server error
  */
-router.delete('/delete/:id', authenticate, authorize('Admin'), deleteCategory);
 
-module.exports = router;
+/**
+ * @swagger
+ * /category/total:
+ *   get:
+ *     summary: Get total number of categories
+ *     tags: [Categories]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Total number of categories
+ */
+

@@ -8,9 +8,11 @@ const swaggerSpec = require('./docs/swagger');
 
 // Route imports
 const authRoutes = require('./routes/authRoutes');
+const userRoutes = require('./routes/userRoutes');
 const categoryRoutes = require('./routes/categoryRoutes');
 const reelsRoutes = require('./routes/reelsRoutes');
 const episodesRoutes = require('./routes/reelEpisodesRoutes');
+const adsRoutes = require('./routes/adsRoutes');
 
 const app = express();
 
@@ -23,9 +25,11 @@ app.use('/api/docs', swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 // Routes
 app.use('/api/auth', authRoutes);
+app.use('/api/users', userRoutes);
 app.use('/api/category', categoryRoutes);
 app.use('/api/reels', reelsRoutes);
 app.use('/api/episodes', episodesRoutes);
+app.use('/api/ads', adsRoutes);
 
 
 // Root route

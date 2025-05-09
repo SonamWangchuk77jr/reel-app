@@ -61,7 +61,7 @@ exports.createReel = async (req, res) => {
         category,
         video: videoUpload.secure_url,
         userId: user._id,
-        status: 'approved' // Default status
+        status: 'pending' // Default status
       });
   
       const savedReel = await newReel.save();
@@ -114,7 +114,8 @@ exports.getAllReelsWithStatusApproved = async (req, res) => {
 
 exports.getReelById = async (req, res) => {
   try {
-    const reel = req.reel; // Get reel from middleware
+    const reel = await Reels.findById(req.params.id)
+      .populate('userId', 'name email profilePicture');
     res.json(reel);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -289,3 +290,15 @@ exports.removeSave = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.totalReels = async (req, res) => {
+  try {
+    const totalReels = await Reels.countDocuments();
+    res.status(200).json({ totalReels });
+  } catch (err) {
+    console.error(err);
+    res.status(500).json({ error: err.message });
+  }
+}
+
+

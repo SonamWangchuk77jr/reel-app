@@ -119,3 +119,15 @@ exports.deleteCategory = async (req, res) => {
         res.status(500).json({ error: 'Server error' });
     }
 };
+
+// Get total number of categories
+exports.totalCategories = async (req, res) => {
+    try {
+        const totalCategories = await Category.countDocuments();
+        res.status(200).json({ totalCategories });
+    } catch (err) {
+        console.error(err);
+        res.status(500).json({ error: err.message });
+    }
+}
+

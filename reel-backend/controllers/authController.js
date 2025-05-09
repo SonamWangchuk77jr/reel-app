@@ -2,6 +2,8 @@ const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
 const { JWT_SECRET } = require('../config/config');
+const cloudinary = require('../config/config').cloudinary;
+const streamifier = require('streamifier');
 
 // Helper function to generate token
 const generateToken = (user) => {
@@ -99,5 +101,107 @@ exports.register = async (req, res) => {
     } catch (err) {
       console.error(err);
       res.status(500).json({ error: 'Login failed' });
+    }
+  };
+
+
+  exports.authUser = async (req, res) => {
+    const user = await User.findById(req.user.id);
+    res.json(user);
+  };
+
+  exports.changePassword = async (req, res) => {
+    const userId = req.user.id;
+    const { oldPassword, newPassword } = req.body;
+
+    if (!oldPassword || !newPassword) {
+      return res.status(400).json({ error: 'Please provide both old and new passwords' });
+    }
+
+    try {
+      const user = await User.findById(userId);
+      if (!user) {
+        return res.status(404).json({ error: 'User not found' });
+      }
+
+      const isMatch = await bcrypt.compare(oldPassword, user.password);
+      if (!isMatch) {
+        return res.status(400).json({ error: 'Old password is incorrect' });
+      }
+
+      const hashedPassword = await bcrypt.hash(newPassword, 10);
+      user.password = hashedPassword;
+      await user.save();
+
+      res.json({ message: 'Password changed successfully' });
+    } catch (err) {
+      console.error('Error changing password:', err);
+      res.status(500).json({ error: 'Failed to change password' });
+    }
+  };
+
+  exports.userProfileEdit = async (req, res) => {
+    const { name, email } = req.body;
+    const profilePicture = req.file;
+    const userId = req.user.id;
+
+    try {
+      // Check if email is already in use by another user
+      if (email) {
+        const existingUser = await User.findOne({ email, _id: { $ne: userId } });
+        if (existingUser) {
+          return res.status(400).json({ error: 'Email is already in use by another user' });
+        }
+      }
+
+      const user = await User.findByIdAndUpdate(userId, { name, email }, { new: true });
+      
+      if (profilePicture) {
+        const uploadToCloudinary = (file) => {
+          return new Promise((resolve, reject) => {
+            const uploadStream = cloudinary.uploader.upload_stream(
+              {
+                folder: 'profile-pictures'
+              },
+              (error, result) => {
+                if (error) {
+                  reject(error);
+                } else if (result && result.secure_url) {
+                  resolve(result);
+                } else {
+                  reject(new Error('Upload failed'));
+                }
+              }
+            );
+            
+            const stream = require('stream');
+            const bufferStream = new stream.PassThrough();
+            bufferStream.end(file.buffer);
+            bufferStream.pipe(uploadStream);
+          });
+        };
+
+        try {
+          const result = await uploadToCloudinary(profilePicture);
+          user.profilePicture = result.secure_url;
+          await user.save();
+        } catch (uploadError) {
+          console.error('Error uploading profile picture:', uploadError);
+          return res.status(500).json({ error: 'Failed to upload profile picture' });
+        }
+      }
+      
+      res.json({
+        message: 'Profile updated successfully',
+        user: {
+          id: user._id,
+          name: user.name,
+          email: user.email,
+          profilePicture: user.profilePicture
+        }
+      });
+    } catch (err) {
+      console.error(err);
+      res.status(500).json({ error: 'Failed to update profile' });
     }
   };

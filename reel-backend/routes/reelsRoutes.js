@@ -1,5 +1,5 @@
 const express = require('express');
-const upload = require('../utils/upload'); 
+const { videoUpload } = require('../utils/upload');
 const router = express.Router();
 const reelsController = require('../controllers/reelsController'); 
 const { authenticate, authorize } = require('../middlewares/authMiddleware');
@@ -59,6 +59,9 @@ const validateReel = require('../middlewares/reelValidationMiddleware');
  *                 type: string
  *               description:
  *                 type: string
+ *               category:
+ *                 type: string
+ *                 enum: [food, travel, fashion, lifestyle, beauty, fitness, technology, other]
  *     responses:
  *       201:
  *         description: Reel created successfully
@@ -71,7 +74,7 @@ const validateReel = require('../middlewares/reelValidationMiddleware');
  */
 router.post(
     '/create',
-    upload.single('video'),
+    videoUpload.single('video'),
     authenticate,
     reelsController.createReel
 );
@@ -95,6 +98,22 @@ router.post(
  *         description: Server error
  */
 router.get('/', reelsController.getAllReels);
+
+
+/**
+ * @swagger
+ * /reels/total:
+ *   get:
+ *     summary: Get total number of reels
+ *     tags: [Reels]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: Total number of reels
+ */
+
+router.get('/total', authenticate, reelsController.totalReels);
 
 /**
  * @swagger
@@ -283,7 +302,6 @@ router.patch(
     '/:id/status',
     validateReel,
     authenticate,
-    authorize('Admin'),
     reelsController.updateReelStatus
 );
 
@@ -470,9 +488,9 @@ router.delete(
     '/:id',
     validateReel,
     authenticate,
-    authorize('User'),
     reelsController.deleteReel
 );
+
 
 module.exports = router;
 

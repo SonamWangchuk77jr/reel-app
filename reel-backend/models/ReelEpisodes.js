@@ -8,6 +8,7 @@ const reelEpisodeSchema = new mongoose.Schema({
   videoUrl: { type: String },
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   saves: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   status: {
     type: String,
     enum: ['approved', 'pending', 'rejected'],
