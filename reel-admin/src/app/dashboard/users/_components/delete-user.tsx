@@ -20,7 +20,7 @@ const DeleteUserModal: React.FC<DeleteUserModalProps> = ({ open, onOpenChange, u
         setLoading(true);
         const token = getSessionToken();
         try {
-            const res = await fetch(`http://localhost:5001/api/users/${userId}`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/${userId}`, {
                 method: "DELETE",
                 headers: {
                     'Content-Type': 'application/json',

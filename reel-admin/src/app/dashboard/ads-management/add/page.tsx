@@ -11,6 +11,9 @@ import { z } from "zod";
 import type { ControllerRenderProps } from "react-hook-form";
 import { ArrowLeft, X } from "lucide-react";
 import Link from "next/link";
+import { getUser } from "@/lib/auth";
+import { toast } from "sonner";
+import { useRouter } from "next/navigation";
 
 
 const formSchema = z.object({
@@ -54,7 +57,7 @@ function AddAdsPage() {
     const [previewUrl, setPreviewUrl] = React.useState<string | null>(null);
     const [fileInfo, setFileInfo] = React.useState<File | null>(null);
     const inputRef = React.useRef<HTMLInputElement>(null);
-
+    const router = useRouter();
     React.useEffect(() => {
         if (fileInfo) {
             const url = URL.createObjectURL(fileInfo);
@@ -98,10 +101,29 @@ function AddAdsPage() {
     async function onSubmit(values: z.infer<typeof formSchema>) {
         setLoading(true);
         // Simulate async action
+        const user = getUser();
+        const formData = new FormData();
+        formData.append('name', values.name);
+        formData.append('point', values.point.toString());
+        formData.append('adsVideoUrl', values.adsVideoUrl);
+
+        const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ads`, {
+            method: 'POST',
+            headers: {
+                'Authorization': `Bearer ${user?.token}`
+            },
+            body: formData
+        });
+        const data = await response.json();
+        if (response.ok) {
+            toast.success('Ads added successfully');
+            router.push('/dashboard/ads-management');
+        } else {
+            toast.error(data.message);
+        }
         setTimeout(() => {
             console.log(values);
             form.reset();
-            setFileInfo(null);
             setLoading(false);
         }, 1000);
     }

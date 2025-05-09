@@ -98,7 +98,7 @@ export function UpdateUserForm() {
 
         try {
             setLoading(true);
-            const response = await fetch("http://localhost:5001/api/auth/profile", {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/profile`, {
                 method: "PATCH",
                 headers: {
                     "Authorization": `Bearer ${userToken?.token}`,

@@ -169,7 +169,7 @@ export default function CategoryList() {
 
     const fetchCategories = React.useCallback(() => {
         setLoading(true)
-        fetch("http://localhost:5001/api/category/getAll")
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/category/getAll`)
             .then(async (res) => {
                 if (!res.ok) throw new Error("Failed to fetch categories")
                 const categories = await res.json()

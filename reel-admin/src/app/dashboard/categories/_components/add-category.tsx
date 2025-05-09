@@ -41,7 +41,7 @@ export function AddCategory({ onCategoryAdded }: { onCategoryAdded?: () => void 
         try {
             // Get token from sessionStorage
             const token = getSessionToken();
-            const response = await fetch('http://localhost:5001/api/category/add', {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/category/add`, {
                 method: 'POST',
                 body: JSON.stringify(data),
                 headers: {

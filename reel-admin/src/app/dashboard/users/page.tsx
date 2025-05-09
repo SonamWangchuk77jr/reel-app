@@ -58,7 +58,7 @@ export default function UsersTable() {
 
     const refreshUsers = React.useCallback(() => {
         setLoading(true)
-        fetch("http://localhost:5001/api/users",
+        fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users`,
             {
                 headers: {
                     "Authorization": `Bearer ${token}`

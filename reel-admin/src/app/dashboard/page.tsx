@@ -1,10 +1,10 @@
 "use client"
 
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card"
-import { Users, DollarSign, Activity, TrendingUp, ArrowUpRight, ArrowDownRight } from "lucide-react"
-import { cn } from "@/lib/utils"
+import { Card, CardContent } from "@/components/ui/card"
+import { Users, CopySlash } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
+import Image from "next/image"
 
 type UserType = {
     token: string;
@@ -19,40 +19,7 @@ type UserType = {
     };
 };
 
-const stats = [
-    {
-        title: "Total Users",
-        value: "1,234",
-        icon: Users,
-        description: "Active users this month",
-        change: "+12.3%",
-        trend: "up",
-    },
-    {
-        title: "Revenue",
-        value: "$45,231",
-        icon: DollarSign,
-        description: "Total revenue this month",
-        change: "+8.2%",
-        trend: "up",
-    },
-    {
-        title: "Active Sessions",
-        value: "573",
-        icon: Activity,
-        description: "Current active sessions",
-        change: "-2.1%",
-        trend: "down",
-    },
-    {
-        title: "Growth",
-        value: "+23.1%",
-        icon: TrendingUp,
-        description: "Compared to last month",
-        change: "+4.3%",
-        trend: "up",
-    },
-]
+
 
 export default function DashboardPage() {
     const [user, setUser] = useState<UserType | null>(null);
@@ -71,81 +38,109 @@ export default function DashboardPage() {
             router.push('/login');
         }
     }, [router]);
+
+    const [totalUsers, setTotalUsers] = useState(0);
+    const [totalAds, setTotalAds] = useState(0);
+    const [totalReels, setTotalReels] = useState(0);
+    const [totalCategories, setTotalCategories] = useState(0);
+
+    useEffect(() => {
+        const fetchTotalUsers = async () => {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/total`, {
+                headers: {
+                    'Authorization': `Bearer ${user?.token}`
+                }
+            });
+            const data = await response.json();
+            setTotalUsers(data.totalUsers);
+        };
+
+        const fetchTotalAds = async () => {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ads/total`, {
+                headers: {
+                    'Authorization': `Bearer ${user?.token}`
+                }
+            });
+            const data = await response.json();
+            setTotalAds(data.totalAds);
+        };
+
+        const fetchTotalReels = async () => {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reels/total`, {
+                headers: {
+                    'Authorization': `Bearer ${user?.token}`
+                }
+            });
+            const data = await response.json();
+            setTotalReels(data.totalReels);
+        };
+
+        const fetchTotalCategories = async () => {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/category/total`, {
+                headers: {
+                    'Authorization': `Bearer ${user?.token}`
+                }
+            });
+            const data = await response.json();
+            setTotalCategories(data.totalCategories);
+        };
+
+        fetchTotalUsers();
+        fetchTotalAds();
+        fetchTotalReels();
+        fetchTotalCategories();
+    }, [user?.token]);
+
+
     return (
         <div className="space-y-8">
             <div>
-                <h1 className="text-3xl font-bold tracking-tight">Hello, {user?.user?.name}</h1>
+                <h1 className="text-3xl font-bold tracking-tight">Hello, <span className="capitalize">{user?.user?.name}</span></h1>
                 <p className="text-gray-500">Welcome to your admin dashboard</p>
             </div>
-
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
-                {stats.map((stat) => (
-                    <Card key={stat.title}>
-                        <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-                            <CardTitle className="text-sm font-medium">
-                                {stat.title}
-                            </CardTitle>
-                            <stat.icon className="h-4 w-4 text-gray-500" />
-                        </CardHeader>
-                        <CardContent>
-                            <div className="text-2xl font-bold">{stat.value}</div>
-                            <div className="flex items-center space-x-2">
-                                <p className="text-xs text-gray-500">{stat.description}</p>
-                                <span
-                                    className={cn(
-                                        "flex items-center text-xs font-medium",
-                                        stat.trend === "up" ? "text-green-500" : "text-red-500"
-                                    )}
-                                >
-                                    {stat.change}
-                                    {stat.trend === "up" ? (
-                                        <ArrowUpRight className="ml-1 h-3 w-3" />
-                                    ) : (
-                                        <ArrowDownRight className="ml-1 h-3 w-3" />
-                                    )}
-                                </span>
-                            </div>
-                        </CardContent>
-                    </Card>
-                ))}
-            </div>
-
-            <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-7">
-                <Card className="col-span-4">
-                    <CardHeader>
-                        <CardTitle>Recent Activity</CardTitle>
-                    </CardHeader>
+            <div>
+                <Card>
                     <CardContent>
-                        <div className="space-y-4">
-                            <div className="flex items-center">
-                                <div className="h-2 w-2 rounded-full bg-primary"></div>
-                                <div className="ml-4 space-y-1">
-                                    <p className="text-sm font-medium">New user registered</p>
-                                    <p className="text-xs text-gray-500">2 minutes ago</p>
+                        <div className="flex justify-around gap-4 py-3">
+                            <div className="flex items-center gap-4">
+                                <div className="bg-[#4D44B5] rounded-full py-3 px-6">
+                                    <Users className="w-6 h-6 text-white" />
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Total Users</p>
+                                    <h1 className="text-[20px] font-bold">{totalUsers}</h1>
                                 </div>
                             </div>
-                            <div className="flex items-center">
-                                <div className="h-2 w-2 rounded-full bg-secondary"></div>
-                                <div className="ml-4 space-y-1">
-                                    <p className="text-sm font-medium">New order received</p>
-                                    <p className="text-xs text-gray-500">5 minutes ago</p>
+
+                            <div className="flex items-center gap-4">
+                                <div className="bg-[#FB7D5B] rounded-full py-3 px-6">
+                                    <Image src="/academicons_ads.svg" alt="ads" width={32} height={32} />
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Total Ads</p>
+                                    <h1 className="text-[20px] font-bold">{totalAds}</h1>
                                 </div>
                             </div>
-                        </div>
-                    </CardContent>
-                </Card>
-                <Card className="col-span-3">
-                    <CardHeader>
-                        <CardTitle>Quick Actions</CardTitle>
-                    </CardHeader>
-                    <CardContent>
-                        <div className="space-y-4">
-                            <button className="w-full rounded-lg bg-primary px-4 py-2 text-sm font-medium text-white hover:bg-primary-600">
-                                Add New User
-                            </button>
-                            <button className="w-full rounded-lg border border-gray-200 bg-white px-4 py-2 text-sm font-medium text-gray-700 hover:bg-gray-50">
-                                Generate Report
-                            </button>
+
+                            <div className="flex items-center gap-4">
+                                <div className="bg-[#FCC43E] rounded-full py-3 px-6">
+                                    <Image src="/reels.svg" alt="ads" width={35} height={35} />
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Total Reels</p>
+                                    <h1 className="text-[20px] font-bold">{totalReels}</h1>
+                                </div>
+                            </div>
+
+                            <div className="flex items-center gap-4">
+                                <div className="bg-primary rounded-full py-3 px-6">
+                                    <CopySlash className="w-6 h-6 text-white" />
+                                </div>
+                                <div>
+                                    <p className="text-sm text-gray-500">Total Categories</p>
+                                    <h1 className="text-[20px] font-bold">{totalCategories}</h1>
+                                </div>
+                            </div>
                         </div>
                     </CardContent>
                 </Card>

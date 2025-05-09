@@ -46,7 +46,7 @@ export function ChangePassword() {
         setLoading(true);
         try {
             const user = getUser();
-            const response = await fetch("http://localhost:5001/api/auth/change-password", {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/change-password`, {
                 method: "PATCH",
                 headers: {
                     "Content-Type": "application/json",

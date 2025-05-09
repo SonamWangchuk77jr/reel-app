@@ -27,7 +27,7 @@ const UpdateCategoryModal: React.FC<UpdateCategoryModalProps> = ({ open, onOpenC
         setLoading(true);
         const token = getSessionToken();
         try {
-            const res = await fetch(`http://localhost:5001/api/category/update/${categoryId}`, {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/category/update/${categoryId}`, {
                 method: "PUT",
                 headers: {
                     'Content-Type': 'application/json',

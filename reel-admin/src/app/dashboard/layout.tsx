@@ -92,7 +92,6 @@ export default function DashboardLayout({
 
     return (
         <div className="min-h-screen w-full bg-gray-50">
-
             <div className="flex">
                 {/* Sidebar */}
                 <aside
