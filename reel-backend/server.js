@@ -13,6 +13,7 @@ const categoryRoutes = require('./routes/categoryRoutes');
 const reelsRoutes = require('./routes/reelsRoutes');
 const episodesRoutes = require('./routes/reelEpisodesRoutes');
 const adsRoutes = require('./routes/adsRoutes');
+const reportRoutes = require('./routes/reportRoutes');
 
 const app = express();
 
@@ -30,7 +31,7 @@ app.use('/api/category', categoryRoutes);
 app.use('/api/reels', reelsRoutes);
 app.use('/api/episodes', episodesRoutes);
 app.use('/api/ads', adsRoutes);
-
+app.use('/api', reportRoutes);
 
 // Root route
 app.get('/', (req, res) => {
