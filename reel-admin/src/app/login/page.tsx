@@ -101,7 +101,9 @@ export default function LoginForm() {
             // Redirect to dashboard
             router.push('/dashboard');
         } catch (error) {
-            alert('An error occurred during login.');
+            toast.error('Login failed', {
+                description: 'An error occurred during login. Please try again. Or Check your internet connection.',
+            });
             console.error(error);
         } finally {
             setLoading(false);

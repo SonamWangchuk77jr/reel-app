@@ -5,6 +5,7 @@ import { Users, CopySlash } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useRouter } from "next/navigation"
 import Image from "next/image"
+import PerformanceChart from "./_components/performance-chart"
 
 type UserType = {
     token: string;
@@ -45,51 +46,25 @@ export default function DashboardPage() {
     const [totalCategories, setTotalCategories] = useState(0);
 
     useEffect(() => {
-        const fetchTotalUsers = async () => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/total`, {
+        if (!user?.token) return;
+
+        const statsData = async () => {
+            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/total-users-videos-ads-categories`, {
+                method: 'GET',
                 headers: {
-                    'Authorization': `Bearer ${user?.token}`
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${user.token}`
                 }
             });
             const data = await response.json();
+            console.log("statsData", data);
             setTotalUsers(data.totalUsers);
-        };
-
-        const fetchTotalAds = async () => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/ads/total`, {
-                headers: {
-                    'Authorization': `Bearer ${user?.token}`
-                }
-            });
-            const data = await response.json();
             setTotalAds(data.totalAds);
-        };
-
-        const fetchTotalReels = async () => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/reels/total`, {
-                headers: {
-                    'Authorization': `Bearer ${user?.token}`
-                }
-            });
-            const data = await response.json();
-            setTotalReels(data.totalReels);
-        };
-
-        const fetchTotalCategories = async () => {
-            const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/category/total`, {
-                headers: {
-                    'Authorization': `Bearer ${user?.token}`
-                }
-            });
-            const data = await response.json();
+            setTotalReels(data.totalVideos);
             setTotalCategories(data.totalCategories);
         };
-
-        fetchTotalUsers();
-        fetchTotalAds();
-        fetchTotalReels();
-        fetchTotalCategories();
-    }, [user?.token]);
+        statsData();
+    }, [user]);
 
 
     return (
@@ -108,7 +83,9 @@ export default function DashboardPage() {
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-500">Total Users</p>
-                                    <h1 className="text-[20px] font-bold">{totalUsers}</h1>
+                                    <h1 className="text-[20px] font-bold">
+                                        {(totalUsers ?? 0) < 10 ? `0${totalUsers ?? 0}` : totalUsers ?? 0}
+                                    </h1>
                                 </div>
                             </div>
 
@@ -118,7 +95,9 @@ export default function DashboardPage() {
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-500">Total Ads</p>
-                                    <h1 className="text-[20px] font-bold">{totalAds}</h1>
+                                    <h1 className="text-[20px] font-bold">
+                                        {(totalAds ?? 0) < 10 ? `0${totalAds ?? 0}` : totalAds ?? 0}
+                                    </h1>
                                 </div>
                             </div>
 
@@ -127,8 +106,10 @@ export default function DashboardPage() {
                                     <Image src="/reels.svg" alt="ads" width={35} height={35} />
                                 </div>
                                 <div>
-                                    <p className="text-sm text-gray-500">Total Reels</p>
-                                    <h1 className="text-[20px] font-bold">{totalReels}</h1>
+                                    <p className="text-sm text-gray-500">Total Videos</p>
+                                    <h1 className="text-[20px] font-bold">
+                                        {(totalReels ?? 0) < 10 ? `0${totalReels ?? 0}` : totalReels ?? 0}
+                                    </h1>
                                 </div>
                             </div>
 
@@ -138,12 +119,21 @@ export default function DashboardPage() {
                                 </div>
                                 <div>
                                     <p className="text-sm text-gray-500">Total Categories</p>
-                                    <h1 className="text-[20px] font-bold">{totalCategories}</h1>
+                                    <h1 className="text-[20px] font-bold">
+                                        {(totalCategories ?? 0) < 10 ? `0${totalCategories ?? 0}` : totalCategories ?? 0}
+                                    </h1>
                                 </div>
                             </div>
                         </div>
                     </CardContent>
                 </Card>
+                <div className="mt-4">
+                    <Card>
+                        <CardContent>
+                            <PerformanceChart />
+                        </CardContent>
+                    </Card>
+                </div>
             </div>
         </div>
     )

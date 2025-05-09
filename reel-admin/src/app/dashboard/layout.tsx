@@ -102,7 +102,7 @@ export default function DashboardLayout({
                     )}
                 >
                     <div className="flex items-center justify-center py-3">
-                        <Image src="/logo-white.svg" alt="logo" width={100} height={100} />
+                        <Image src="/logo-white.svg" alt="logo" width={100} height={100} priority />
                     </div>
                     <div className="h-full py-6">
                         <nav className="grid gap-1 pl-2">
