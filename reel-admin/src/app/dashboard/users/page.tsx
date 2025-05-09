@@ -38,6 +38,7 @@ import {
 import UpdateUserModal from "./_components/update-user"
 import DeleteUserModal from "./_components/delete-user"
 import { getSessionToken } from "@/lib/auth"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export type User = {
     _id: string
@@ -223,7 +224,38 @@ export default function UsersTable() {
     })
 
     if (loading) {
-        return <div className="p-8 text-center">Loading users...</div>
+        return (
+            <div className="w-full">
+                <div className="flex items-center py-4">
+                    <Skeleton className="h-10 w-64 max-w-sm mr-4" />
+                    <Skeleton className="h-10 w-32 ml-auto" />
+                </div>
+                <div className="rounded-md border overflow-hidden">
+                    <table className="min-w-full">
+                        <thead>
+                            <tr>
+                                {[...Array(8)].map((_, i) => (
+                                    <th key={i} className="px-4 py-3">
+                                        <Skeleton className="h-6 w-24" />
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {[...Array(6)].map((_, rowIdx) => (
+                                <tr key={rowIdx}>
+                                    {[...Array(8)].map((_, colIdx) => (
+                                        <td key={colIdx} className="px-4 py-3">
+                                            <Skeleton className="h-6 w-full" />
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
     }
     if (error) {
         return <div className="p-8 text-center text-red-500">{error}</div>

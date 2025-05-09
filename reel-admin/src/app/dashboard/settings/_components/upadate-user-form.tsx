@@ -5,6 +5,7 @@ import { useForm } from "react-hook-form"
 import { z } from "zod"
 import React, { useState, useEffect } from "react"
 import { Loader2 } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
 
 import { Button } from "@/components/ui/button"
 import {
@@ -155,8 +156,21 @@ export function UpdateUserForm() {
     }
 
     if (!userData) {
-        return <div className="flex justify-center items-center h-40">Loading...</div>;
+        return (
+            <div className="flex flex-col gap-6  h-60 w-full">
+                <div className="flex flex-col md:flex-row gap-6 w-full max-w-2xl">
+                    <Skeleton className="h-10 w-full md:w-1/2" />
+                    <Skeleton className="h-10 w-full md:w-1/2" />
+                </div>
+                <div className="flex gap-2 items-center">
+                    <Skeleton className="h-24 w-24 rounded-full mt-4" />
+                    <Skeleton className="h-10 w-full" />
+                </div>
+            </div>
+        );
     }
+
+
 
     return (
         <div >

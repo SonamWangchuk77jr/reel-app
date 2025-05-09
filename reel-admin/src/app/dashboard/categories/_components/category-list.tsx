@@ -35,6 +35,7 @@ import {
 import AddCategory from "./add-category"
 import DeleteCategoryModal from "./delete-category-modal"
 import UpdateCategoryModal from "./update-category-modal"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export type User = {
     _id: string
@@ -205,7 +206,38 @@ export default function CategoryList() {
     })
 
     if (loading) {
-        return <div className="p-8 text-center">Loading categories...</div>
+        return (
+            <div className="w-full">
+                <div className="flex items-center py-4 justify-between">
+                    <Skeleton className="h-10 w-64 max-w-sm" />
+                    <Skeleton className="h-10 w-32" />
+                </div>
+                <div className="rounded-md border overflow-hidden">
+                    <table className="min-w-full">
+                        <thead>
+                            <tr>
+                                {[...Array(6)].map((_, i) => (
+                                    <th key={i} className="px-4 py-3">
+                                        <Skeleton className="h-6 w-24" />
+                                    </th>
+                                ))}
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {[...Array(6)].map((_, rowIdx) => (
+                                <tr key={rowIdx}>
+                                    {[...Array(6)].map((_, colIdx) => (
+                                        <td key={colIdx} className="px-4 py-3">
+                                            <Skeleton className="h-6 w-full" />
+                                        </td>
+                                    ))}
+                                </tr>
+                            ))}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        );
     }
     if (error) {
         return <div className="p-8 text-center text-red-500">{error}</div>
