@@ -21,7 +21,7 @@ interface DataTableProps<TData, TValue> {
     data: TData[];
 }
 
-export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValue>) {
+export function EpisodeDataTable<TData, TValue>({ columns, data }: DataTableProps<TData, TValue>) {
     const table = useReactTable({
         data,
         columns,
@@ -100,7 +100,6 @@ export function DataTable<TData, TValue>({ columns, data }: DataTableProps<TData
                         Next
                     </Button>
                 </div>
-
             </div>
         </div>
     );

@@ -1,8 +1,9 @@
 import { Tabs, TabsContent, TabsList, TabsTrigger, } from '@/components/ui/tabs'
 import React from 'react'
-import EpisodeList from './_components/episode-list'
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from '@/components/ui/card'
 import ReelsList from './_components/reels-list'
+import EpisodeList from './_components/episode-list'
+
 
 const ContentModerationPage = () => {
     return (
@@ -18,9 +19,9 @@ const ContentModerationPage = () => {
                 <TabsContent value="reels">
                     <Card>
                         <CardHeader>
-                            <CardTitle>Reels</CardTitle>
+                            <CardTitle>Reels List</CardTitle>
                             <CardDescription>
-                                Make changes to your reels here. Click save when you&apos;re done.
+                                View all the reels here and take action on them
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-2">
@@ -33,7 +34,7 @@ const ContentModerationPage = () => {
                         <CardHeader>
                             <CardTitle>Reels Episodes</CardTitle>
                             <CardDescription>
-                                Make changes to your reels episodes here. Click save when you&apos;re done.
+                                View all the reels episodes here and take action on them
                             </CardDescription>
                         </CardHeader>
                         <CardContent className="space-y-2">

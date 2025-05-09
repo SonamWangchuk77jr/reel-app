@@ -1,4 +1,5 @@
 "use client";
+
 import { useEffect, useState } from "react";
 import { Reel, columns } from "./reels/reels-columns";
 import { DataTable } from "./reels/reels-data-table";
@@ -24,20 +25,30 @@ export default function ReelsList() {
     const [status, setStatus] = useState("");
 
     useEffect(() => {
-        setLoading(true);
-        fetch(`${baseUrl}/api/reels`)
-            .then((res) => {
-                if (!res.ok) throw new Error("Failed to fetch reels");
-                return res.json();
-            })
-            .then((json) => {
-                setData(json);
-                setLoading(false);
-            })
-            .catch((err) => {
-                setError(err.message);
-                setLoading(false);
-            });
+        const fetchData = () => {
+            fetch(`${baseUrl}/api/reels`, { cache: "no-store" }) // prevent caching
+                .then((res) => {
+                    if (!res.ok) throw new Error("Failed to fetch reels");
+                    return res.json();
+                })
+                .then((json) => {
+                    console.log("Fetched reels:", json); // debug log
+                    // Update only if data changed
+                    setData((prev) =>
+                        JSON.stringify(prev) !== JSON.stringify(json) ? [...json] : prev
+                    );
+                    setLoading(false);
+                })
+                .catch((err) => {
+                    setError(err.message);
+                    setLoading(false);
+                });
+        };
+
+        fetchData(); // initial fetch
+        const interval = setInterval(fetchData, 1000); // fetch every 1 second
+
+        return () => clearInterval(interval); // cleanup
     }, [baseUrl]);
 
     // Filtered data
@@ -47,19 +58,21 @@ export default function ReelsList() {
         return matchesSearch && matchesStatus;
     });
 
-    if (loading) return (
-        <div className="space-y-2">
-            <div className="flex gap-2 mb-4">
-                <Skeleton className="h-9 w-64" />
-                <Skeleton className="h-9 w-36" />
-            </div>
+    if (loading)
+        return (
             <div className="space-y-2">
-                {[...Array(5)].map((_, i) => (
-                    <Skeleton key={i} className="h-12 w-full" />
-                ))}
+                <div className="flex gap-2 mb-4">
+                    <Skeleton className="h-9 w-64" />
+                    <Skeleton className="h-9 w-36" />
+                </div>
+                <div className="space-y-2">
+                    {[...Array(5)].map((_, i) => (
+                        <Skeleton key={i} className="h-12 w-full" />
+                    ))}
+                </div>
             </div>
-        </div>
-    );
+        );
+
     if (error) return <div>Error: {error}</div>;
 
     return (
@@ -74,18 +87,31 @@ export default function ReelsList() {
                 />
                 <DropdownMenu>
                     <DropdownMenuTrigger asChild>
-                        <Button variant="outline" className="min-w-[140px] justify-between">
-                            {status ? status.charAt(0).toUpperCase() + status.slice(1) : "All Statuses"}
+                        <Button
+                            variant="outline"
+                            className="min-w-[140px] justify-between"
+                        >
+                            {status
+                                ? status.charAt(0).toUpperCase() + status.slice(1)
+                                : "All Statuses"}
                         </Button>
                     </DropdownMenuTrigger>
                     <DropdownMenuContent align="start">
                         <DropdownMenuLabel>Status</DropdownMenuLabel>
                         <DropdownMenuSeparator />
                         <DropdownMenuGroup>
-                            <DropdownMenuItem onClick={() => setStatus("")}>All Statuses</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setStatus("pending")}>Pending</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setStatus("approved")}>Approved</DropdownMenuItem>
-                            <DropdownMenuItem onClick={() => setStatus("rejected")}>Rejected</DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setStatus("")}>
+                                All Statuses
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setStatus("pending")}>
+                                Pending
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setStatus("approved")}>
+                                Approved
+                            </DropdownMenuItem>
+                            <DropdownMenuItem onClick={() => setStatus("rejected")}>
+                                Rejected
+                            </DropdownMenuItem>
                         </DropdownMenuGroup>
                     </DropdownMenuContent>
                 </DropdownMenu>

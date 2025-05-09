@@ -91,7 +91,7 @@ export default function DashboardLayout({
     }, [router]);
 
     return (
-        <div className="min-h-screen bg-gray-50">
+        <div className="min-h-screen w-full bg-gray-50">
 
             <div className="flex">
                 {/* Sidebar */}
@@ -106,21 +106,25 @@ export default function DashboardLayout({
                         <Image src="/logo-white.svg" alt="logo" width={100} height={100} />
                     </div>
                     <div className="h-full py-6">
-                        <nav className="grid gap-1 px-2">
+                        <nav className="grid gap-1 pl-2">
                             {sidebarItems.map((item) => (
                                 <Link
                                     key={item.href}
                                     href={item.href}
                                     className={cn(
-                                        "flex items-center justify-start gap-3 rounded-lg px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100",
-                                        pathname === item.href
-                                            ? "bg-gray-100 text-primary"
-                                            : "text-gray-500"
+                                        "flex items-center justify-start gap-3 rounded-l-[20px] px-3 py-2 text-sm font-medium transition-all hover:bg-gray-100",
+                                        item.href === "/dashboard"
+                                            ? pathname === item.href
+                                                ? "bg-gray-100 text-primary"
+                                                : "text-gray-500"
+                                            : pathname.startsWith(item.href)
+                                                ? "bg-gray-100 text-primary"
+                                                : "text-gray-500"
                                     )}
                                 >
                                     <item.icon className="h-4 w-4" />
                                     {item.title}
-                                    {pathname === item.href && (
+                                    {(item.href === "/dashboard" ? pathname === item.href : pathname.startsWith(item.href)) && (
                                         <ChevronRight className="ml-auto h-4 w-4" />
                                     )}
                                 </Link>
@@ -151,7 +155,7 @@ export default function DashboardLayout({
                 >
                     {/* Top Navigation Bar */}
                     <header className="sticky top-0 z-50 w-full border-b bg-white">
-                        <div className="container flex h-16 items-center px-8">
+                        <div className="w-full flex h-16 items-center px-8">
                             <Button
                                 variant="ghost"
                                 size="icon"
@@ -160,11 +164,11 @@ export default function DashboardLayout({
                             >
                                 {isSidebarOpen ? <X className="h-5 w-5" /> : <Menu className="h-5 w-5" />}
                             </Button>
-                            <div className="flex flex-1 items-center justify-between">
+                            <div className="flex flex-1 items-center justify-between w-full">
                                 <div className="flex items-center space-x-4">
                                     {/* Page Title */}
                                     <h1 className="text-xl font-semibold">
-                                        {sidebarItems.find(item => item.href === pathname)?.title || "Dashboard"}
+                                        {sidebarItems.find(item => item.href === pathname)?.title || "Reels"}
                                     </h1>
                                 </div>
 
@@ -198,7 +202,7 @@ export default function DashboardLayout({
                             </div>
                         </div>
                     </header>
-                    <div className="container p-8">{children}</div>
+                    <div className="w-full p-8">{children}</div>
                 </main>
             </div>
         </div>

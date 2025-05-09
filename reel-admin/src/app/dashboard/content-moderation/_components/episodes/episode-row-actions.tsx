@@ -7,18 +7,18 @@ import {
     DropdownMenuItem,
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Reel } from "./reels-columns";
+import { Episode } from "./episode-columns";
 import { useState } from "react";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogClose } from "@/components/ui/dialog";
 import { getUser } from "@/lib/auth";
 import { toast } from "sonner";
 import { useRouter } from "next/navigation";
 
-interface ReelRowActionsProps {
-    row: Reel;
+interface EpisodeRowActionsProps {
+    row: Episode;
 }
 
-export function ReelRowActions({ row }: ReelRowActionsProps) {
+export function EpisodeRowActions({ row }: EpisodeRowActionsProps) {
     const userToken = getUser();
     const [dialog, setDialog] = useState<null | "approve" | "reject" | "delete">(null);
     const router = useRouter();
@@ -26,7 +26,7 @@ export function ReelRowActions({ row }: ReelRowActionsProps) {
         let url = "";
         let options: RequestInit = {};
         if (action === "approve") {
-            url = `${process.env.NEXT_PUBLIC_API_URL}/api/reels/${row.id}/status`;
+            url = `${process.env.NEXT_PUBLIC_API_URL}/api/episodes/${row._id}/status`;
             options = {
                 method: "PATCH",
                 headers: {
@@ -37,7 +37,7 @@ export function ReelRowActions({ row }: ReelRowActionsProps) {
                 body: JSON.stringify({ status: "approved" }),
             };
         } else if (action === "reject") {
-            url = `${process.env.NEXT_PUBLIC_API_URL}/api/reels/${row.id}/status`;
+            url = `${process.env.NEXT_PUBLIC_API_URL}/api/episodes/${row._id}/status`;
             options = {
                 method: "PATCH",
                 headers: {
@@ -48,7 +48,7 @@ export function ReelRowActions({ row }: ReelRowActionsProps) {
                 body: JSON.stringify({ status: "rejected" }),
             };
         } else if (action === "delete") {
-            url = `${process.env.NEXT_PUBLIC_API_URL}/api/reels/${row.id}`;
+            url = `${process.env.NEXT_PUBLIC_API_URL}/api/episodes/${row._id}`;
             options = {
                 method: "DELETE",
                 headers: {
@@ -103,7 +103,7 @@ export function ReelRowActions({ row }: ReelRowActionsProps) {
                         </DropdownMenuItem>
                     </>
                 )}
-                <DropdownMenuItem onClick={() => router.push(`/dashboard/content-moderation/reels/${row.id}`)}>
+                <DropdownMenuItem onClick={() => router.push(`/dashboard/content-moderation/episodes/${row._id}`)}>
                     <Eye className="mr-2 h-4 w-4 text-blue-500" /> View
                 </DropdownMenuItem>
                 <DropdownMenuItem onClick={() => setDialog("delete")}>
@@ -115,9 +115,9 @@ export function ReelRowActions({ row }: ReelRowActionsProps) {
             <Dialog open={dialog === "approve"} onOpenChange={open => !open && setDialog(null)}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Approve Reel</DialogTitle>
+                        <DialogTitle>Approve Episode</DialogTitle>
                     </DialogHeader>
-                    <p>Are you sure you want to approve <b>{row.title}</b>?</p>
+                    <p>Are you sure you want to approve <b>{row.episodeName}</b>?</p>
                     <DialogFooter>
                         <DialogClose asChild>
                             <Button variant="outline">Cancel</Button>
@@ -131,9 +131,9 @@ export function ReelRowActions({ row }: ReelRowActionsProps) {
             <Dialog open={dialog === "reject"} onOpenChange={open => !open && setDialog(null)}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Reject Reel</DialogTitle>
+                        <DialogTitle>Reject Episode</DialogTitle>
                     </DialogHeader>
-                    <p>Are you sure you want to reject <b>{row.title}</b>?</p>
+                    <p>Are you sure you want to reject <b>{row.episodeName}</b>?</p>
                     <DialogFooter>
                         <DialogClose asChild>
                             <Button variant="outline">Cancel</Button>
@@ -147,9 +147,9 @@ export function ReelRowActions({ row }: ReelRowActionsProps) {
             <Dialog open={dialog === "delete"} onOpenChange={open => !open && setDialog(null)}>
                 <DialogContent>
                     <DialogHeader>
-                        <DialogTitle>Delete Reel</DialogTitle>
+                        <DialogTitle>Delete Episode</DialogTitle>
                     </DialogHeader>
-                    <p>Are you sure you want to delete <b>{row.title}</b>? This action cannot be undone.</p>
+                    <p>Are you sure you want to delete <b>{row.episodeName}</b>? This action cannot be undone.</p>
                     <DialogFooter>
                         <DialogClose asChild>
                             <Button variant="outline">Cancel</Button>
