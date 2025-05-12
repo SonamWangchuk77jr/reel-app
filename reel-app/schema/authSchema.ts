@@ -28,3 +28,11 @@ export const signupSchema = yup.object().shape({
     .oneOf([true], 'You must accept the terms and conditions')
     .required(),
 });
+
+
+export const forgotPasswordSchema = yup.object().shape({
+  email: yup
+  .string()
+  .email("Invalid email format")
+  .required("Email is required"),
+})

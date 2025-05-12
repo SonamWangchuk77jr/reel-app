@@ -129,6 +129,7 @@ export default function Login() {
                     Forgot Password?{" "}
                     <Text
                         className="text-primary font-bold"
+                        onPress={() => router.push("/(auth)/forgotpassword")}
                     >
                         RESET
                     </Text>

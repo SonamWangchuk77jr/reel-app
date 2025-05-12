@@ -15,4 +15,14 @@ export interface Reel {
     createdAt: string;
     updatedAt: string;
     saves: string[];
-} 
+}
+
+export interface Ads{
+    _id: string,
+    name: string,
+    point: number,
+    adsVideoUrl: string,
+    createdAt: string,
+    updatedAt: string, 
+    __v: number,
+}

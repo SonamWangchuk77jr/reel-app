@@ -14,7 +14,7 @@ const ITEM_SIZE = Math.floor((width - (PADDING * 2) - (GAP * (COLUMN_COUNT - 1))
 
 const VideoItem = ({ videoUrl }: { videoUrl: string }) => {
     const player = useVideoPlayer(videoUrl, (p) => {
-        p.loop = true;
+        p.loop = false;
         p.muted = true;
         // @ts-ignore - Native configuration
         p.style = {
@@ -22,15 +22,20 @@ const VideoItem = ({ videoUrl }: { videoUrl: string }) => {
             width: '100%',
             height: '100%'
         };
+        // Pause the video immediately after initialization
+        p.pause();
     });
 
     return (
-        <View style={{
-            width: ITEM_SIZE,
-            height: ITEM_SIZE,
-            overflow: 'hidden',
-            backgroundColor: 'gray'
-        }}>
+        <View
+            style={{
+                width: ITEM_SIZE,
+                height: ITEM_SIZE,
+                overflow: 'hidden',
+                backgroundColor: 'gray'
+            }}
+            pointerEvents="none"
+        >
             <VideoView
                 player={player}
                 style={{

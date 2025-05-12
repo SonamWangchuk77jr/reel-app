@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, Image, Dimensions, StyleSheet, ScrollView } from 'react-native';
 import * as ImagePicker from 'expo-image-picker';
 import { router } from 'expo-router';
@@ -13,11 +13,11 @@ import { getReelsCategory } from '@/api/reelsCategory';
 import DropDownPicker from 'react-native-dropdown-picker';
 import * as yup from 'yup';
 import { Feather, Ionicons } from '@expo/vector-icons';
-import { Video, AVPlaybackStatus, ResizeMode } from 'expo-av';
+import { useVideoPlayer, VideoView } from 'expo-video';
 import { useAuth } from '@/context/AuthContext';
 import { createReel } from '@/api/reels';
 import { useReels } from '@/context/ReelsContext';
-
+import { useEvent } from 'expo';
 
 type ReelsFormData = yup.InferType<typeof reelsUploadSchema>;
 
@@ -29,12 +29,6 @@ interface Category {
 interface DropdownItem {
     label: string;
     value: string;
-}
-
-interface VideoStatus {
-    isPlaying: boolean;
-    positionMillis: number;
-    durationMillis: number;
 }
 
 const { width } = Dimensions.get('window');
@@ -49,8 +43,10 @@ export default function ReelsUpload() {
     const [value, setValue] = useState<string | null>(null);
     const [items, setItems] = useState<DropdownItem[]>([]);
     const [selectedVideo, setSelectedVideo] = useState<ImagePicker.ImagePickerAsset | null>(null);
-    const [videoStatus, setVideoStatus] = useState<AVPlaybackStatus | null>(null);
     const [uploadProgress, setUploadProgress] = useState(0);
+
+    const videoPlayer = useVideoPlayer(selectedVideo ? { uri: selectedVideo.uri } : null);
+    const { isPlaying } = useEvent(videoPlayer, 'playingChange', { isPlaying: videoPlayer.playing });
 
     const {
         control,
@@ -66,8 +62,6 @@ export default function ReelsUpload() {
             category: '',
         },
     });
-
-    const videoRef = useRef<Video>(null);
 
     const styles = StyleSheet.create({
         videoContainer: {
@@ -293,14 +287,12 @@ export default function ReelsUpload() {
                         >
                             {selectedVideo ? (
                                 <View style={styles.videoContainer}>
-                                    <Video
-                                        ref={videoRef}
+                                    <VideoView
                                         style={styles.video}
-                                        source={{ uri: selectedVideo.uri }}
-                                        useNativeControls
-                                        resizeMode={ResizeMode.COVER}
-                                        isLooping
-                                        onPlaybackStatusUpdate={(status: AVPlaybackStatus) => setVideoStatus(status)}
+                                        player={videoPlayer}
+                                        nativeControls
+                                        contentFit="cover"
+                                        allowsFullscreen
                                     />
                                     <View className="flex-row items-center justify-center my-5">
                                         <Ionicons name="videocam" size={24} color="white" />

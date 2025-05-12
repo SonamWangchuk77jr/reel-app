@@ -6,6 +6,16 @@ const _Layout = () => {
         <Stack screenOptions={{ headerShown: false }}>
             <Stack.Screen name="login" />
             <Stack.Screen name="signup" />
+            <Stack.Screen name='forgotpassword'
+                options={{
+                    headerShown: true,
+                    headerTitle: '',
+                    headerBackTitle: 'Back',
+                    headerStyle: {
+                        backgroundColor: "#0C1319",
+                    },
+                }}
+            />
         </Stack>
     )
 }

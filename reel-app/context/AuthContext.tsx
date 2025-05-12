@@ -3,7 +3,6 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import axios from 'axios';
 import { router } from 'expo-router';
 import { login as apiLogin } from '@/api/auth';
-import Toast from 'react-native-toast-message';
 
 interface User {
     id: string;
@@ -58,6 +57,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             const response = await apiLogin({ email, password });
             const { token, user } = response;
 
+            console.log('role', user.role)
+
+            if (user.role === 'Admin') {
+                throw new Error('Admin users cannot login through this interface');
+            }
+
+            // Proceed only for non-admin users
             await Promise.all([
                 AsyncStorage.setItem('token', token),
                 AsyncStorage.setItem('user', JSON.stringify(user))
@@ -66,20 +72,13 @@ export const AuthProvider: React.FC<{ children: React.ReactNode }> = ({ children
             setToken(token);
             setUser(user);
             axios.defaults.headers.common['Authorization'] = `Bearer ${token}`;
+            router.replace('/(tabs)');
 
-            if (user.role === 'Admin') {
-                Toast.show({
-                    type: 'error',
-                    text1: 'Access Denied',
-                    text2: 'Admin users cannot login through this interface'
-                });
-            } else {
-                router.replace('/(tabs)');
-            }
         } catch (error: any) {
-            throw new Error(error || 'Invalid email or password');
+            throw new Error(error?.message || 'Invalid email or password');
         }
     };
+
 
     const logout = async () => {
         try {

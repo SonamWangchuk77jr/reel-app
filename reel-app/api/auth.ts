@@ -34,3 +34,34 @@ export const login = async (formData: {
         }
     }
 };
+
+export const forgotPassword = async (email: string) => {
+    try {
+        const response = await axios.post(`${baseURL}/api/users/forgot-password`, { email });
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to send confirmation code");
+    }
+};
+
+export const resetPasswordConfirmationCode = async (email: string, confirmationCode: string) => {
+    try {
+        const response = await axios.post(`${baseURL}/api/users/confirm-reset-code`, { email, confirmationCode });
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to reset password confirmation code");
+    }
+};
+
+export const resetPassword = async (email: string, newPassword: string) => {
+    try {
+        const response = await axios.post(`${baseURL}/api/users/reset-password`, { email, newPassword });
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to reset password");
+    }
+};
+
+
+
+
