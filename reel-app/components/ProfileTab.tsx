@@ -58,8 +58,8 @@ const TabView = ({ userId }: { userId: string }) => {
     const [loading, setLoading] = useState(true);
     const { reels, setReels, refreshReels } = useReels();
 
-    console.log('Reels:', reels);
-    console.log('User ID:', userId);
+    // console.log('Reels:', reels);
+    // console.log('User ID:', userId);
 
     useEffect(() => {
         const fetchReels = async () => {

@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     View,
     FlatList,
@@ -20,12 +20,13 @@ import { useIsFocused } from '@react-navigation/native';
 import { getApprovedReels, Reel } from '@/api/reels';
 import { useAuth } from '@/context/AuthContext';
 import * as Haptics from 'expo-haptics';
+import { router } from 'expo-router';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
 const SocialButton = ({ icon, count, onPress, isActive, activeColor = 'red' }: {
     icon: IconName;
-    count: number;
+    count: string;
     onPress: () => void;
     isActive?: boolean;
     activeColor?: string;
@@ -358,26 +359,26 @@ const VideoItem = ({ item, index, liked, onLike, onShare, onFollow, isVisible }:
             <View className="absolute right-4 bottom-72 bg-white/20 p-2.5 rounded-xl items-center gap-5">
                 <SocialButton
                     icon={liked[index] ? 'heart' : 'heart-outline'}
-                    count={item.likeCount}
+                    count={`${item.likeCount}`}
                     onPress={() => onLike(index)}
                     isActive={liked[index]}
                 />
 
                 <SocialButton
                     icon="star-outline"
-                    count={item.saveCount}
+                    count={`${item.saveCount}`}
                     onPress={() => { }}
                 />
 
                 <SocialButton
                     icon="grid"
-                    count={0}
-                    onPress={() => { }}
+                    count={`Episodes`}
+                    onPress={() => { router.push(`/reels-episodes/${item._id}`) }}
                 />
 
                 <SocialButton
                     icon="paper-plane-outline"
-                    count={0}
+                    count={`Share`}
                     onPress={handleShare}
                 />
             </View>

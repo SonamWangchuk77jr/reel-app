@@ -1,13 +1,13 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet } from 'react-native';
+import React, { useState } from 'react';
+import { View, Text, TextInput, TouchableOpacity, ActivityIndicator, KeyboardAvoidingView, Platform, ScrollView, StyleSheet, Switch } from 'react-native';
 import { router, useLocalSearchParams } from 'expo-router';
 import { Stack } from 'expo-router';
 import { useForm, Controller } from 'react-hook-form';
 import { yupResolver } from '@hookform/resolvers/yup';
 import { episodesSchema } from '@/schema/episodesSchema';
-import { Video, ResizeMode } from 'expo-av';
+import { VideoView, useVideoPlayer } from 'expo-video';
 import * as ImagePicker from 'expo-image-picker';
 import { Feather } from '@expo/vector-icons';
 import Toast from 'react-native-toast-message';
@@ -25,7 +25,9 @@ export default function EpisodeUpload() {
     const [isLoading, setIsLoading] = useState(false);
     const [selectedVideo, setSelectedVideo] = useState<ImagePicker.ImagePickerAsset | null>(null);
     const [uploadProgress, setUploadProgress] = useState(0);
-    const videoRef = useRef<Video>(null);
+
+    // Use the new video player hook
+    const videoPlayer = useVideoPlayer(selectedVideo ? { uri: selectedVideo.uri } : null);
 
     const {
         control,
@@ -40,6 +42,7 @@ export default function EpisodeUpload() {
             description: '',
             caption: '',
             video: undefined,
+            isFree: false,
         },
     });
 
@@ -86,7 +89,6 @@ export default function EpisodeUpload() {
             });
             return;
         }
-        console.log("reelId", reelId);
 
         if (!selectedVideo) {
             Toast.show({
@@ -116,6 +118,7 @@ export default function EpisodeUpload() {
             formData.append('description', data.description);
             formData.append('caption', data.caption);
             formData.append('reelId', reelId);
+            formData.append('isFree', data.isFree.toString());
 
             formData.append('video', {
                 uri: selectedVideo.uri,
@@ -201,13 +204,11 @@ export default function EpisodeUpload() {
                         >
                             {selectedVideo ? (
                                 <View style={styles.videoContainer}>
-                                    <Video
-                                        ref={videoRef}
+                                    <VideoView
+                                        player={videoPlayer}
                                         style={styles.video}
-                                        source={{ uri: selectedVideo.uri }}
-                                        useNativeControls
-                                        resizeMode={ResizeMode.COVER}
-                                        isLooping
+                                        contentFit="cover"
+                                        nativeControls
                                     />
                                     <View className="flex-row items-center justify-center my-5">
                                         <Feather name="video" size={24} color="white" />
@@ -306,9 +307,29 @@ export default function EpisodeUpload() {
                         )}
                     />
 
+                    <Controller
+                        name="isFree"
+                        control={control}
+                        render={({ field: { onChange, value } }) => (
+                            <>
+                                <View className="flex-row items-center mb-4">
+                                    <Switch
+                                        value={value}
+                                        onValueChange={onChange}
+                                        className="transform scale-90"
+                                    />
+                                    <Text className="text-white ml-2">Free Episode</Text>
+                                </View>
+                                {errors.isFree && (
+                                    <Text className="text-red-500 text-sm mb-4">{errors.isFree.message}</Text>
+                                )}
+                            </>
+                        )}
+                    />
+
                     <TouchableOpacity
                         onPress={handleSubmit(onSubmit)}
-                        className="bg-primary py-4 rounded-lg mt-4"
+                        className="bg-primary py-4 rounded-lg mt-4 mb-10"
                         disabled={isLoading}
                     >
                         <Text className="text-white text-center font-bold text-lg">

@@ -14,6 +14,8 @@ import { icons } from '@/constants/icons';
 import { router } from 'expo-router';
 import TabView from '@/components/ProfileTab';
 import { useAuth } from '@/context/AuthContext';
+import { getKarmaPoints } from '@/api/karmaPoints';
+import { useQueryClient, useQuery } from '@tanstack/react-query';
 
 const { height } = Dimensions.get('window');
 
@@ -49,6 +51,19 @@ const profile = () => {
             keyboardDidShowListener.remove();
         };
     }, []);
+
+    const { token } = useAuth();
+
+    if (!token) {
+        return <Text>No token</Text>
+    }
+
+    const queryClient = useQueryClient();
+
+    const { data: karmaPoints } = useQuery({
+        queryKey: ['karmaPoints'],
+        queryFn: () => getKarmaPoints(token),
+    });
     return (
         <SafeAreaView className="bg-secondary h-full flex-1 relative">
 
@@ -148,11 +163,11 @@ const profile = () => {
                             </View>
                             <View className='w-full py-3 flex-row justify-start items-center gap-2'>
                                 <Image source={icons.rewardPoints} className="size-[20px]" />
-                                <Text className="text-white text-[20px] font-semibold">1000</Text>
+                                <Text className="text-white text-[20px] font-semibold">{karmaPoints?.points}</Text>
                             </View>
                         </View>
                         <View>
-                            <TouchableOpacity className='w-full h-[50px] px-4 bg-primary rounded-[30px] flex justify-center items-center'>
+                            <TouchableOpacity onPress={() => router.push('/reward')} className='w-full h-[50px] px-4 bg-primary rounded-[30px] flex justify-center items-center'>
                                 <Text className='text-white text-[16px]'>Refill Coins</Text>
                             </TouchableOpacity>
                         </View>

@@ -33,3 +33,14 @@ export const addKarmaPoints = async (token: string, points: number) => {
     });
     return response.data;
 };
+
+export const deductKarmaPoints = async (token: string, points: number) => {
+    const response = await axios.patch(`${baseURL}/api/karma-points/deduct`, {
+        points,
+        headers: {
+            Authorization: `Bearer ${token}`,
+        },
+    });
+    return response.data;
+};
+

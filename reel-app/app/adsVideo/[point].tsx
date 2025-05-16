@@ -58,8 +58,8 @@ export default function WatchAds() {
 
     useEffect(() => {
         const onBackPress = () => true;
-        BackHandler.addEventListener('hardwareBackPress', onBackPress);
-        return () => BackHandler.removeEventListener('hardwareBackPress', onBackPress);
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', onBackPress);
+        return () => backHandler.remove();
     }, []);
 
     useEffect(() => {
