@@ -7,6 +7,8 @@ import { useQuery } from '@tanstack/react-query';
 import { useAuth } from '@/context/AuthContext';
 import { Feather, Ionicons } from '@expo/vector-icons';
 import { LinearGradient } from 'expo-linear-gradient';
+import { getIsFollowing, unfollowUser, followUser } from '@/api/userFollowers';
+import Toast from 'react-native-toast-message';
 
 const { width, height } = Dimensions.get('window');
 
@@ -117,6 +119,50 @@ export default function EpisodePlayer() {
             }
         } catch (error) {
             console.log('Error sharing:', error);
+        }
+    };
+
+
+    // check if user is following
+    const { data: followingStatus } = useQuery({
+        queryKey: ['isFollowing', episode?.userId?._id],
+        queryFn: () => token && episode?.userId?._id ? getIsFollowing(token, episode.userId._id) : null,
+        enabled: !!token && !!episode?.userId?._id,
+    });
+
+    // Update following state when data changes
+    React.useEffect(() => {
+        if (followingStatus !== undefined) {
+            setIsFollowing(followingStatus.success);
+        }
+    }, [followingStatus]);
+
+    const [isFollowing, setIsFollowing] = useState(false);
+    const handleFollow = async () => {
+        if (!token || !episode?.userId?._id) return;
+        try {
+            //check if following or not
+            const followingStatus = await getIsFollowing(token, episode.userId._id);
+
+            console.log('followingStatus', followingStatus);
+
+            // Optimistically update UI
+            setIsFollowing(!followingStatus.success);
+
+            // Call the appropriate API based on current following state
+            if (followingStatus.success) {
+                await unfollowUser(token, episode.userId._id);
+            } else {
+                await followUser(token, episode.userId._id);
+            }
+        } catch (error) {
+            // Revert optimistic update on error
+            setIsFollowing(prev => !prev);
+            Toast.show({
+                type: 'error',
+                text1: 'Warning',
+                text2: 'You cannot follow yourself',
+            });
         }
     };
 
@@ -248,9 +294,15 @@ export default function EpisodePlayer() {
                         <Text style={styles.userName}>
                             {episode.userId?.name || "User"}
                         </Text>
-                        <TouchableOpacity style={styles.followButton}>
-                            <Text style={styles.followButtonText}>Follow</Text>
-                        </TouchableOpacity>
+                        {isFollowing ? (
+                            <TouchableOpacity style={styles.followButton} onPress={handleFollow}>
+                                <Text style={styles.followButtonText}>Following</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <TouchableOpacity style={styles.followButton} onPress={handleFollow}>
+                                <Text style={styles.followButtonText}>Follow</Text>
+                            </TouchableOpacity>
+                        )}
                     </View>
 
                     <Text style={styles.episodeDescription} numberOfLines={2}>

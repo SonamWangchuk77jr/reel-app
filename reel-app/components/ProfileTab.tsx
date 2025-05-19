@@ -1,11 +1,12 @@
-import React, { useState, useEffect } from 'react';
-import { View, Text, TouchableOpacity, Dimensions, Animated } from 'react-native';
+import React, { useState, useEffect, useRef } from 'react';
+import { View, Text, TouchableOpacity, Dimensions, Animated, AppState } from 'react-native';
 import { Feather } from '@expo/vector-icons';
-import { getReelByUserId } from '@/api/reels';
+import { getReelByUserId, getSavedReels, Reel } from '@/api/reels';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useReels } from '@/context/ReelsContext';
 import { router } from 'expo-router';
 import { useAuth } from '@/context/AuthContext';
+import { useIsFocused } from '@react-navigation/native';
 
 const { width } = Dimensions.get('window');
 const COLUMN_COUNT = 3;
@@ -58,6 +59,10 @@ const TabView = ({ userId }: { userId: string }) => {
     const [tabAnimation] = useState(new Animated.Value(0));
     const [loading, setLoading] = useState(true);
     const { reels, setReels, refreshReels } = useReels();
+    const [savedReels, setSavedReels] = useState<Reel[]>([]);
+    const isFocused = useIsFocused();
+    const appState = useRef(AppState.currentState);
+    const lastFocusTimeRef = useRef<number>(Date.now());
 
     // token
     const token = useAuth().token;
@@ -65,20 +70,30 @@ const TabView = ({ userId }: { userId: string }) => {
         return <Text>No token</Text>
     }
 
+    // Auto refresh when screen comes into focus
     useEffect(() => {
-        const fetchReels = async () => {
-            try {
-                const fetchedReels = await getReelByUserId(token);
-                setReels(fetchedReels);
-            } catch (error) {
-                console.error('Error fetching reels:', error);
-            } finally {
-                setLoading(false);
-            }
-        };
+        if (isFocused) {
+            const fetchData = async () => {
+                try {
+                    setLoading(true);
+                    if (activeTab === 'post') {
+                        const fetchedReels = await getReelByUserId(token);
+                        setReels(fetchedReels);
+                    } else {
+                        const savedReelsData = await getSavedReels(token);
+                        setSavedReels(savedReelsData);
+                    }
+                } catch (error) {
+                    console.error('Error refreshing data:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
 
-        fetchReels();
-    }, [userId, setReels]);
+            fetchData();
+            lastFocusTimeRef.current = Date.now();
+        }
+    }, [isFocused, token, activeTab]);
 
     const handleTabChange = (tab: 'post' | 'list') => {
         setActiveTab(tab);
@@ -87,6 +102,34 @@ const TabView = ({ userId }: { userId: string }) => {
             duration: 300,
             useNativeDriver: true,
         }).start();
+
+        // Refresh data when tab is clicked
+        setLoading(true);
+        if (tab === 'post') {
+            const fetchReels = async () => {
+                try {
+                    const fetchedReels = await getReelByUserId(token);
+                    setReels(fetchedReels);
+                } catch (error) {
+                    console.error('Error refreshing reels:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            fetchReels();
+        } else {
+            const fetchSavedReels = async () => {
+                try {
+                    const savedReelsData = await getSavedReels(token);
+                    setSavedReels(savedReelsData);
+                } catch (error) {
+                    console.error('Error refreshing saved reels:', error);
+                } finally {
+                    setLoading(false);
+                }
+            };
+            fetchSavedReels();
+        }
     };
 
     const tabIndicatorStyle = {
@@ -245,8 +288,48 @@ const TabView = ({ userId }: { userId: string }) => {
                         )}
                     </View>
                 ) : (
-                    <View className="px-6 mt-6">
-                        <Text className="text-white text-lg font-medium">List content goes here...</Text>
+                    <View style={{ padding: PADDING }}>
+                        {loading ? (
+                            renderSkeleton()
+                        ) : savedReels.length === 0 ? (
+                            <View className="flex-1 justify-center items-center min-h-[200px]">
+                                <Text className="text-white text-lg">No saved reels found</Text>
+                            </View>
+                        ) : (
+                            // Create rows for saved reels similar to how we do for regular reels
+                            (() => {
+                                const savedReelRows = [];
+                                for (let i = 0; i < savedReels.length; i += COLUMN_COUNT) {
+                                    savedReelRows.push(savedReels.slice(i, i + COLUMN_COUNT));
+                                }
+
+                                return savedReelRows.map((row, rowIndex) => (
+                                    <View
+                                        key={rowIndex}
+                                        className="flex-row flex-wrap"
+                                        style={{
+                                            gap: GAP,
+                                            marginBottom: rowIndex !== savedReelRows.length - 1 ? GAP : 0
+                                        }}
+                                    >
+                                        {row.map((reel, colIndex) => (
+                                            <TouchableOpacity
+                                                key={`${rowIndex}-${colIndex}`}
+                                                style={{
+                                                    width: ITEM_SIZE,
+                                                    height: ITEM_SIZE,
+                                                }}
+                                                className="overflow-hidden bg-white"
+                                                activeOpacity={0.8}
+                                                onPress={() => router.push(`/reels/${reel._id}`)}
+                                            >
+                                                <VideoItem videoUrl={reel.video} />
+                                            </TouchableOpacity>
+                                        ))}
+                                    </View>
+                                ));
+                            })()
+                        )}
                     </View>
                 )}
             </View>

@@ -22,6 +22,8 @@ import { useAuth } from '@/context/AuthContext';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
 import { useQuery, useQueryClient } from '@tanstack/react-query';
+import { followUser, getIsFollowing, unfollowUser } from '@/api/userFollowers';
+import Toast from 'react-native-toast-message';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -91,6 +93,8 @@ const VideoItem = ({ item, index, onShare, onFollow, isVisible }: {
     const [saveCount, setSaveCount] = useState(item.saveCount || 0);
     const { token } = useAuth();
     const queryClient = useQueryClient();
+    const lastPlayAttemptRef = useRef<number>(0);
+    const playbackErrorCountRef = useRef<number>(0);
 
     // Check if user has liked the reel
     const { data: likedStatus } = useQuery({
@@ -233,6 +237,13 @@ const VideoItem = ({ item, index, onShare, onFollow, isVisible }: {
     const playVideo = useCallback(async () => {
         if (!isPlayerValid() || userPaused) return;
 
+        // Throttle play attempts to prevent rapid consecutive calls
+        const now = Date.now();
+        if (now - lastPlayAttemptRef.current < 300) {
+            return;
+        }
+        lastPlayAttemptRef.current = now;
+
         try {
             if (isAndroid) {
                 setIsBuffering(true);
@@ -240,21 +251,47 @@ const VideoItem = ({ item, index, onShare, onFollow, isVisible }: {
             await playerRef.current?.play();
             setIsPlaying(true);
             setIsBuffering(false);
+            // Reset error count on successful play
+            playbackErrorCountRef.current = 0;
         } catch (error) {
             console.log('Error playing video:', error);
             setIsBuffering(false);
-            handlePlaybackError();
+            playbackErrorCountRef.current += 1;
+
+            // Only show error after multiple failures
+            if (playbackErrorCountRef.current >= 3) {
+                handlePlaybackError();
+            } else {
+                // Try again after a short delay
+                setTimeout(() => {
+                    if (mountedRef.current && isVisible && isFocused && !userPaused) {
+                        playVideo();
+                    }
+                }, 1000);
+            }
         }
-    }, [userPaused, isAndroid, isPlayerValid]);
+    }, [userPaused, isAndroid, isPlayerValid, isVisible, isFocused]);
 
     // Handle app state changes
     useEffect(() => {
         const subscription = AppState.addEventListener('change', nextAppState => {
             if (!mountedRef.current) return;
 
-            if (isAndroid && nextAppState !== 'active') {
+            if (nextAppState !== 'active') {
+                // App going to background
                 setUserPaused(true);
                 pauseVideo();
+            } else if (appState.current !== 'active' && nextAppState === 'active') {
+                // App coming to foreground
+                if (isVisible && isFocused && !userPaused) {
+                    // Small delay to ensure app is fully active
+                    setTimeout(() => {
+                        if (mountedRef.current) {
+                            setUserPaused(false);
+                            playVideo();
+                        }
+                    }, 500);
+                }
             }
             appState.current = nextAppState;
         });
@@ -262,15 +299,21 @@ const VideoItem = ({ item, index, onShare, onFollow, isVisible }: {
         return () => {
             subscription.remove();
         };
-    }, [pauseVideo, isAndroid]);
+    }, [pauseVideo, playVideo, isVisible, isFocused, userPaused]);
 
+    // Play/pause based on visibility and focus
     useEffect(() => {
         if (!mountedRef.current) return;
 
         const shouldPlay = isFocused && isVisible && !userPaused;
 
         if (shouldPlay) {
-            playVideo();
+            // Small delay to ensure component is fully mounted
+            setTimeout(() => {
+                if (mountedRef.current) {
+                    playVideo();
+                }
+            }, 100);
         } else {
             pauseVideo();
         }
@@ -304,13 +347,40 @@ const VideoItem = ({ item, index, onShare, onFollow, isVisible }: {
         }
     }, [playerRef]);
 
-    const handleFollow = () => {
-        setIsFollowing(!isFollowing);
-        onFollow(item.userId.name);
-        if (Platform.OS !== 'web') {
-            Haptics.notificationAsync(
-                isFollowing ? Haptics.NotificationFeedbackType.Success : Haptics.NotificationFeedbackType.Warning
-            );
+    //check if user is following
+    const { data: followingStatus } = useQuery({
+        queryKey: ['isFollowing', item.userId?._id],
+        queryFn: () => token && item.userId?._id ? getIsFollowing(token, item.userId._id) : null,
+        enabled: !!token && !!item.userId?._id,
+    });
+
+    // Update following state when data changes
+    React.useEffect(() => {
+        if (followingStatus !== undefined) {
+            setIsFollowing(followingStatus.success);
+        }
+    }, [followingStatus]);
+
+    const handleFollow = async () => {
+        if (!token || !item.userId?._id) return;
+        try {
+            // Optimistically update UI
+            setIsFollowing(prev => !prev);
+            if (isFollowing) {
+                await unfollowUser(token, item.userId._id);
+            } else {
+                await followUser(token, item.userId._id);
+            }
+
+
+        } catch (error) {
+            // Revert optimistic update on error
+            setIsFollowing(prev => !prev);
+            Toast.show({
+                type: 'error',
+                text1: 'Warning',
+                text2: 'You cannot follow yourself',
+            });
         }
     };
 
@@ -419,31 +489,6 @@ const VideoItem = ({ item, index, onShare, onFollow, isVisible }: {
                     </View>
                 </View>
             </TouchableOpacity>
-
-            {/* Top Navigation */}
-            <View className="absolute top-[60px] left-0 right-0 flex-row justify-between px-10 z-10">
-                <TouchableOpacity
-                    className="w-10 h-10 rounded-full bg-white/20 justify-center items-center"
-                    onPress={() => {
-                        if (Platform.OS !== 'web') {
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        }
-                    }}
-                >
-                    <Ionicons name="chevron-back" size={20} color="white" />
-                </TouchableOpacity>
-                <TouchableOpacity
-                    className="w-10 h-10 rounded-full bg-white/20 justify-center items-center"
-                    onPress={() => {
-                        if (Platform.OS !== 'web') {
-                            Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Light);
-                        }
-                    }}
-                >
-                    <Ionicons name="search" size={20} color="white" />
-                </TouchableOpacity>
-            </View>
-
             {/* Right Side Stats */}
             <View className="absolute right-4 bottom-72 bg-white/20 p-2.5 rounded-xl items-center gap-5">
                 <SocialButton
@@ -529,36 +574,77 @@ const ExploreReel = () => {
     const { token } = useAuth();
     const isFocused = useIsFocused();
     const queryClient = useQueryClient();
+    const appState = useRef(AppState.currentState);
+    const lastFocusTimeRef = useRef<number>(Date.now());
 
-    const fetchReels = useCallback(async () => {
-        if (token) {
+    // Fetch reels with React Query for better caching and auto-refresh
+    const { data, refetch } = useQuery({
+        queryKey: ['explore-reels'],
+        queryFn: async () => {
+            if (!token) return [];
+            setIsLoading(true);
             try {
                 const reels = await getApprovedReels(token);
-                setReelData(reels);
+                return reels;
             } catch (error) {
                 console.error('Error fetching reels:', error);
                 Alert.alert('Error', 'Failed to load reels. Please try again.');
+                return [];
             } finally {
                 setIsLoading(false);
                 setIsRefreshing(false);
             }
-        } else {
-            console.log('No token available');
-            setIsLoading(false);
-            setIsRefreshing(false);
-        }
-    }, [token]);
+        },
+        enabled: !!token && isFocused,
+    });
 
+    // Update reelData when query data changes
+    useEffect(() => {
+        if (data) {
+            setReelData(data);
+        }
+    }, [data]);
+
+    // Handle app state changes (background/foreground)
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', nextAppState => {
+            // Auto refresh when app comes to foreground after being in background
+            if (
+                appState.current.match(/inactive|background/) &&
+                nextAppState === 'active' &&
+                isFocused
+            ) {
+                const now = Date.now();
+                // Only refresh if it's been more than 2 minutes since last focus
+                if (now - lastFocusTimeRef.current > 2 * 60 * 1000) {
+                    refetch();
+                }
+                lastFocusTimeRef.current = now;
+            }
+            appState.current = nextAppState;
+        });
+
+        return () => {
+            subscription.remove();
+        };
+    }, [refetch, isFocused]);
+
+    // Auto refresh when screen comes into focus
     useEffect(() => {
         if (isFocused) {
-            fetchReels();
+            const now = Date.now();
+            // Only refresh if it's been more than 30 seconds since last focus
+            if (now - lastFocusTimeRef.current > 30 * 1000) {
+                refetch();
+            }
+            lastFocusTimeRef.current = now;
         }
-    }, [isFocused, fetchReels]);
+    }, [isFocused, refetch]);
 
     const handleRefresh = useCallback(() => {
         setIsRefreshing(true);
-        fetchReels();
-    }, [fetchReels]);
+        refetch();
+    }, [refetch]);
 
     const handleShare = async (videoUrl: string) => {
         try {
@@ -572,9 +658,10 @@ const ExploreReel = () => {
         }
     };
 
-    const toggleFollow = (username: string) => {
-        console.log(`Follow ${username}`);
-    };
+    const toggleFollow = useCallback((username: string) => {
+        // Invalidate relevant queries to refresh data
+        queryClient.invalidateQueries({ queryKey: ['isFollowing'] });
+    }, [queryClient]);
 
     const onViewableItemsChanged = useRef(({ viewableItems }: any) => {
         if (viewableItems.length > 0) {
@@ -596,7 +683,7 @@ const ExploreReel = () => {
             onFollow={toggleFollow}
             isVisible={index === visibleIndex}
         />
-    ), [visibleIndex]);
+    ), [visibleIndex, toggleFollow]);
 
     const keyExtractor = useCallback((item: Reel) => item._id, []);
 

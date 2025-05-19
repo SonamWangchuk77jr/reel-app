@@ -5,9 +5,10 @@ import {
     Dimensions, Image,
     TouchableOpacity, KeyboardAvoidingView,
     Platform,
-    Keyboard
+    Keyboard,
+    AppState
 } from 'react-native'
-import React, { useEffect, useState } from 'react'
+import React, { useEffect, useState, useRef } from 'react'
 import { images } from '@/constants/image'
 import { Feather, FontAwesome } from "@expo/vector-icons";
 import { icons } from '@/constants/icons';
@@ -16,6 +17,8 @@ import TabView from '@/components/ProfileTab';
 import { useAuth } from '@/context/AuthContext';
 import { getKarmaPoints } from '@/api/karmaPoints';
 import { useQueryClient, useQuery } from '@tanstack/react-query';
+import { getFollowers, getFollowing } from '@/api/userFollowers';
+import { useIsFocused } from '@react-navigation/native';
 
 const { height } = Dimensions.get('window');
 
@@ -23,13 +26,81 @@ const profile = () => {
     const [keyboardVisible, setKeyboardVisible] = useState(false);
     const { user, isLoading, token } = useAuth();
     const queryClient = useQueryClient();
+    const isFocused = useIsFocused();
+    const appState = useRef(AppState.currentState);
+    const lastFocusTimeRef = useRef<number>(Date.now());
 
     // Move the token check inside the query function instead of using early returns
-    const { data: karmaPoints } = useQuery({
+    const { data: karmaPoints, refetch: refetchKarmaPoints } = useQuery({
         queryKey: ['karmaPoints'],
         queryFn: () => token ? getKarmaPoints(token) : null,
         enabled: !!token
     });
+
+    //get follower
+    const { data: followers, refetch: refetchFollowers } = useQuery({
+        queryKey: ['followers'],
+        queryFn: () => token ? getFollowers(token, user?.id || '') : null,
+        enabled: !!token && !!user?.id
+    });
+
+    //get following
+    const { data: following, refetch: refetchFollowing } = useQuery({
+        queryKey: ['following'],
+        queryFn: () => token ? getFollowing(token, user?.id || '') : null,
+        enabled: !!token && !!user?.id
+    });
+
+    // Auto refresh when screen comes into focus
+    useEffect(() => {
+        if (isFocused && token) {
+            const refreshData = async () => {
+                // Refresh all profile data
+                if (user?.id) {
+                    refetchKarmaPoints();
+                    refetchFollowers();
+                    refetchFollowing();
+
+                    // Invalidate related queries to ensure fresh data
+                    queryClient.invalidateQueries({ queryKey: ['karmaPoints'] });
+                    queryClient.invalidateQueries({ queryKey: ['followers'] });
+                    queryClient.invalidateQueries({ queryKey: ['following'] });
+                }
+            };
+
+            refreshData();
+            lastFocusTimeRef.current = Date.now();
+        }
+    }, [isFocused, token, user?.id]);
+
+    // Handle app state changes (background/foreground)
+    useEffect(() => {
+        const subscription = AppState.addEventListener('change', nextAppState => {
+            // Auto refresh when app comes to foreground after being in background
+            if (
+                appState.current.match(/inactive|background/) &&
+                nextAppState === 'active' &&
+                isFocused &&
+                token
+            ) {
+                const now = Date.now();
+                // Only refresh if it's been more than 1 minute since last focus
+                if (now - lastFocusTimeRef.current > 60 * 1000) {
+                    if (user?.id) {
+                        refetchKarmaPoints();
+                        refetchFollowers();
+                        refetchFollowing();
+                    }
+                }
+                lastFocusTimeRef.current = now;
+            }
+            appState.current = nextAppState;
+        });
+
+        return () => {
+            subscription.remove();
+        };
+    }, [isFocused, token, user?.id, refetchKarmaPoints, refetchFollowers, refetchFollowing]);
 
     useEffect(() => {
         const keyboardDidShowListener = Keyboard.addListener(
@@ -57,15 +128,12 @@ const profile = () => {
         if (isLoading) {
             return <Text>Loading...</Text>;
         }
-
         if (!user) {
             return <Text>Not logged in</Text>;
         }
-
         if (!token) {
-            return <Text>No token</Text>
+            return <Text>No token</Text>;
         }
-
         return (
             <SafeAreaView className="bg-secondary h-full flex-1 relative">
 
@@ -86,7 +154,7 @@ const profile = () => {
                                     </View>
                                 </TouchableOpacity>
                                 {/* Search Bar */}
-                                <View className="flex-1 mx-3">
+                                {/* <View className="flex-1 mx-3">
                                     <View className="relative w-full rounded-full justify-center">
                                         <Feather
                                             name="search"
@@ -105,16 +173,16 @@ const profile = () => {
                                             />
                                         </KeyboardAvoidingView>
                                     </View>
-                                </View>
+                                </View> */}
 
                                 {/* Settings & Notifications */}
                                 <View className="flex-row gap-3">
                                     <View className="border-2 border-primary rounded-full h-11 w-11 items-center justify-center">
                                         <FontAwesome name="gear" size={20} color="#fff" />
                                     </View>
-                                    <View className="border-2 border-primary rounded-full h-11 w-11 items-center justify-center">
+                                    {/* <View className="border-2 border-primary rounded-full h-11 w-11 items-center justify-center">
                                         <FontAwesome name="bell" size={20} color="#fff" />
-                                    </View>
+                                    </View> */}
                                 </View>
                             </View>
                         </ImageBackground>
@@ -134,7 +202,7 @@ const profile = () => {
                     <View className='flex-row justify-center gap-20 items-center mt-5'>
                         <View className='flex-col justify-between items-center'>
                             <Text className="text-2xl text-white font-bold">
-                                120
+                                {following}
                             </Text>
                             <Text className="text-lg text-[#A7A7A7] font-semibold mt-2">
                                 Following
@@ -142,7 +210,7 @@ const profile = () => {
                         </View>
                         <View className='flex-col justify-between items-center'>
                             <Text className="text-2xl text-white font-bold">
-                                20K
+                                {followers}
                             </Text>
                             <Text className="text-lg text-[#A7A7A7] font-semibold mt-2">
                                 Followers
@@ -176,20 +244,15 @@ const profile = () => {
                         </View>
                     </View>
                     {/* Profile Tab view  */}
-                    <TabView userId={user?.id} />
+                    <TabView userId={user?.id || ''} />
 
                 </ScrollView>
                 {!keyboardVisible && (
                     <View className='flex-row justify-center w-full items-center absolute bottom-10 z-50'>
-                        <View className='flex-row justify-between items-center w-[85%] bg-[#9E8EB8]/50 rounded-[35px] px-3 mt-10 py-3'>
-                            <View className='w-[48%]'>
-                                <TouchableOpacity className='w-full h-[50px] bg-primary rounded-[30px] flex justify-center items-center'>
-                                    <Text className='text-white text-[16px]'>LIVE</Text>
-                                </TouchableOpacity>
-                            </View>
-                            <View className='w-[48%]'>
+                        <View className='flex-row justify-center items-center w-[85%]'>
+                            <View className='w-[80%]'>
                                 <TouchableOpacity
-                                    className='w-full h-[50px] bg-[#B9CDEE]/20 rounded-[30px] flex justify-center items-center'
+                                    className='w-full h-[50px] bg-primary rounded-[30px] flex justify-center items-center'
                                     onPress={() => router.push('/upload/reels-upload')}
                                 >
                                     <Text className='text-white text-[16px]'>UPLOAD</Text>

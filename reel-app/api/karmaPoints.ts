@@ -8,6 +8,7 @@ export const getKarmaPoints = async (token: string) => {
             Authorization: `Bearer ${token}`,
         },
     });
+    console.log('response', response.data);
     return response.data;
 };
 

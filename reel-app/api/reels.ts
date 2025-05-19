@@ -1,8 +1,10 @@
 import axios from "axios";
+import { JSX } from "react";
 
 const baseURL = process.env.EXPO_PUBLIC_API_URL;
 
 export interface Reel {
+    map(arg0: (reel: { _id: any; video: string; }, colIndex: any) => JSX.Element): import("react").ReactNode;
     category: string;
     _id: string;
     title: string;
@@ -160,6 +162,21 @@ export const hasSaved = async (token: string, reelId: string): Promise<boolean> 
         return data.hasSaved;
     } catch (error: any) {
         throw new Error(error.message || 'Failed to check save status');
+    }
+};
+
+// get saved reels
+export const getSavedReels = async (token: string): Promise<Reel[]> => {
+    try {
+        const response = await axios.get(`${baseURL}/api/reels/saved`, {
+            headers: {
+                'accept': '*/*',
+                'Authorization': `Bearer ${token}`
+            }
+        });
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to fetch saved reels");
     }
 };
 
