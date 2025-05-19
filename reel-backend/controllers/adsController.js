@@ -82,6 +82,37 @@ exports.getAds = async (req, res) => {
     }
 }
 
+exports.getRandomShuffledAdsByPoint = async (req, res) => {
+  try {
+    const { point } = req.params;
+
+    // Ensure point is provided
+    if (!point) {
+      return res.status(400).json({ error: "Point parameter is required" });
+    }
+
+    // Fetch ads based on the point
+    const ads = await Ads.find({ point });
+
+    // If no ads found for the given point
+    if (!ads.length) {
+      return res.status(404).json({ message: "No ads found for this point" });
+    }
+
+    // Shuffle the ads and pick one random ad
+    const randomAd = ads.sort(() => Math.random() - 0.5)[0];
+
+    // Return the selected random ad
+    res.status(200).json(randomAd);
+  } catch (error) {
+    // Handle any server errors
+    console.error(error);
+    res.status(500).json({ error: "An error occurred while fetching ads" });
+  }
+};
+
+
+
 exports.totalAds = async (req, res) => {
     try {
         const totalAds = await Ads.countDocuments();

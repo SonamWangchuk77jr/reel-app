@@ -17,10 +17,11 @@ import {
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { Ionicons } from '@expo/vector-icons';
 import { useIsFocused } from '@react-navigation/native';
-import { getApprovedReels, Reel } from '@/api/reels';
+import { getApprovedReels, Reel, toggleLike, toggleSave, hasLiked, hasSaved } from '@/api/reels';
 import { useAuth } from '@/context/AuthContext';
 import * as Haptics from 'expo-haptics';
 import { router } from 'expo-router';
+import { useQuery, useQueryClient } from '@tanstack/react-query';
 
 type IconName = keyof typeof Ionicons.glyphMap;
 
@@ -70,11 +71,9 @@ const SocialButton = ({ icon, count, onPress, isActive, activeColor = 'red' }: {
     );
 };
 
-const VideoItem = ({ item, index, liked, onLike, onShare, onFollow, isVisible }: {
+const VideoItem = ({ item, index, onShare, onFollow, isVisible }: {
     item: Reel;
     index: number;
-    liked: boolean[];
-    onLike: (index: number) => void;
     onShare: (url: string) => void;
     onFollow: (username: string) => void;
     isVisible: boolean;
@@ -86,6 +85,91 @@ const VideoItem = ({ item, index, liked, onLike, onShare, onFollow, isVisible }:
     const [isFollowing, setIsFollowing] = useState(false);
     const [isPlaying, setIsPlaying] = useState(false);
     const [userPaused, setUserPaused] = useState(false);
+    const [liked, setLiked] = useState(false);
+    const [saved, setSaved] = useState(false);
+    const [likeCount, setLikeCount] = useState(item.likeCount || 0);
+    const [saveCount, setSaveCount] = useState(item.saveCount || 0);
+    const { token } = useAuth();
+    const queryClient = useQueryClient();
+
+    // Check if user has liked the reel
+    const { data: likedStatus } = useQuery({
+        queryKey: ['hasLiked', item._id],
+        queryFn: () => hasLiked(token ? token : '', item._id),
+        enabled: !!token && !!item._id,
+    });
+
+    // Update liked state when data changes
+    React.useEffect(() => {
+        if (likedStatus !== undefined) {
+            setLiked(likedStatus);
+        }
+    }, [likedStatus]);
+
+    // Check if user has saved the reel
+    const { data: savedStatus } = useQuery({
+        queryKey: ['hasSaved', item._id],
+        queryFn: () => hasSaved(token ? token : '', item._id),
+        enabled: !!token && !!item._id,
+    });
+
+    // Update saved state when data changes
+    React.useEffect(() => {
+        if (savedStatus !== undefined) {
+            setSaved(savedStatus);
+        }
+    }, [savedStatus]);
+
+    const handleLike = async () => {
+        if (!token) return;
+        try {
+            // Optimistically update UI
+            setLiked(prev => !prev);
+            setLikeCount(prev => liked ? prev - 1 : prev + 1);
+
+            await toggleLike(token, item._id);
+
+            if (Platform.OS !== 'web') {
+                Haptics.notificationAsync(
+                    liked ? Haptics.NotificationFeedbackType.Warning : Haptics.NotificationFeedbackType.Success
+                );
+            }
+            // Invalidate queries to refresh data
+            queryClient.invalidateQueries({ queryKey: ['hasLiked', item._id] });
+            queryClient.invalidateQueries({ queryKey: ['reels'] });
+        } catch (error) {
+            // Revert optimistic update on error
+            setLiked(prev => !prev);
+            setLikeCount(prev => liked ? prev + 1 : prev - 1);
+            console.error('Error toggling like:', error);
+        }
+    };
+
+    const handleSave = async () => {
+        if (!token) return;
+        try {
+            // Optimistically update UI
+            setSaved(prev => !prev);
+            setSaveCount(prev => saved ? prev - 1 : prev + 1);
+
+            await toggleSave(token, item._id);
+
+            if (Platform.OS !== 'web') {
+                Haptics.notificationAsync(
+                    saved ? Haptics.NotificationFeedbackType.Warning : Haptics.NotificationFeedbackType.Success
+                );
+            }
+            // Invalidate queries to refresh data
+            queryClient.invalidateQueries({ queryKey: ['hasSaved', item._id] });
+            queryClient.invalidateQueries({ queryKey: ['reels'] });
+        } catch (error) {
+            // Revert optimistic update on error
+            setSaved(prev => !prev);
+            setSaveCount(prev => saved ? prev + 1 : prev - 1);
+            console.error('Error toggling save:', error);
+        }
+    };
+
     const retryCount = useRef(0);
     const maxRetries = 3;
     const playerRef = useRef<any>(null);
@@ -264,6 +348,11 @@ const VideoItem = ({ item, index, liked, onLike, onShare, onFollow, isVisible }:
         }
     }, [isPlaying, pauseVideo, playVideo, isPlayerValid]);
 
+    // Move the token check here, after all hooks are called
+    if (!token) {
+        return <Text>No token</Text>
+    }
+
     return (
         <View style={{ height, width }}>
             <TouchableOpacity
@@ -358,16 +447,19 @@ const VideoItem = ({ item, index, liked, onLike, onShare, onFollow, isVisible }:
             {/* Right Side Stats */}
             <View className="absolute right-4 bottom-72 bg-white/20 p-2.5 rounded-xl items-center gap-5">
                 <SocialButton
-                    icon={liked[index] ? 'heart' : 'heart-outline'}
-                    count={`${item.likeCount}`}
-                    onPress={() => onLike(index)}
-                    isActive={liked[index]}
+                    icon={liked ? 'heart' : 'heart-outline'}
+                    count={`${likeCount}`}
+                    onPress={handleLike}
+                    isActive={liked}
+                    activeColor="#ff3040"
                 />
 
                 <SocialButton
-                    icon="star-outline"
-                    count={`${item.saveCount}`}
-                    onPress={() => { }}
+                    icon={saved ? "star" : "star-outline"}
+                    count={`${saveCount}`}
+                    onPress={handleSave}
+                    isActive={saved}
+                    activeColor="#FFFF00"
                 />
 
                 <SocialButton
@@ -429,7 +521,6 @@ const VideoItem = ({ item, index, liked, onLike, onShare, onFollow, isVisible }:
 
 const ExploreReel = () => {
     const { height } = useWindowDimensions();
-    const [liked, setLiked] = useState<boolean[]>([]);
     const [visibleIndex, setVisibleIndex] = useState(0);
     const [reelData, setReelData] = useState<Reel[]>([]);
     const [isLoading, setIsLoading] = useState(true);
@@ -437,13 +528,13 @@ const ExploreReel = () => {
     const flatListRef = useRef<FlatList>(null);
     const { token } = useAuth();
     const isFocused = useIsFocused();
+    const queryClient = useQueryClient();
 
     const fetchReels = useCallback(async () => {
         if (token) {
             try {
                 const reels = await getApprovedReels(token);
                 setReelData(reels);
-                setLiked(new Array(reels.length).fill(false));
             } catch (error) {
                 console.error('Error fetching reels:', error);
                 Alert.alert('Error', 'Failed to load reels. Please try again.');
@@ -468,12 +559,6 @@ const ExploreReel = () => {
         setIsRefreshing(true);
         fetchReels();
     }, [fetchReels]);
-
-    const toggleLike = (index: number) => {
-        const newLikes = [...liked];
-        newLikes[index] = !newLikes[index];
-        setLiked(newLikes);
-    };
 
     const handleShare = async (videoUrl: string) => {
         try {
@@ -507,13 +592,11 @@ const ExploreReel = () => {
         <VideoItem
             item={item}
             index={index}
-            liked={liked}
-            onLike={toggleLike}
             onShare={handleShare}
             onFollow={toggleFollow}
             isVisible={index === visibleIndex}
         />
-    ), [liked, visibleIndex]);
+    ), [visibleIndex]);
 
     const keyExtractor = useCallback((item: Reel) => item._id, []);
 

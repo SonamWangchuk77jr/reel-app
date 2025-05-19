@@ -109,6 +109,84 @@ exports.toggleSave = async (req, res) => {
   }
 };
 
+// check if user has liked an episode
+exports.hasLiked = async (req, res) => {
+  try {
+    const { episodeId } = req.params;
+    const userId = req.user?.id;
+
+    if (!episodeId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Episode ID and User ID are required'
+      });
+    }
+
+    // Fetch only the 'likes' field for performance
+    const episode = await ReelEpisodes.findById(episodeId).select('likes');
+    if (!episode) {
+      return res.status(404).json({
+        success: false,
+        message: 'Episode not found'
+      });
+    }
+
+    // Convert both to strings to ensure comparison
+    const hasLiked = episode.likes.some(
+      (likeUserId) => likeUserId.toString() === userId.toString()
+    );
+
+    res.status(200).json({
+      success: true,
+      hasLiked
+    });
+  } catch (error) {
+    console.error('Error in hasLiked:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error checking if episode is liked',
+      error: error.message
+    });
+  }
+};
+
+
+// check if user has saved an episode
+exports.hasSaved = async (req, res) => {
+  try {
+    const { episodeId } = req.params;
+    const userId = req.user.id;
+
+    if (!episodeId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Episode ID and User ID are required'
+      });
+    }
+
+    const episode = await ReelEpisodes.findById(episodeId);
+    if (!episode) {
+      return res.status(404).json({
+        success: false,
+        message: 'Episode not found'
+      });
+    }
+
+    const hasSaved = episode.saves.includes(userId);
+    res.status(200).json({
+      success: true,
+      hasSaved
+    });
+  } catch (error) {
+    console.error('Error in hasSaved:', error);
+    res.status(500).json({
+      success: false,
+      message: 'Error checking if episode is saved',
+      error: error.message
+    });
+  }
+};
+
 // Get user's saved episodes
 exports.getUserSavedEpisodes = async (req, res) => {
   try {
@@ -157,7 +235,11 @@ exports.createEpisode = async (req, res) => {
   try {
     const { reelId } = req.params;
     const userId = req.user.id;
+    let isLocked = true;
     const { episodeNumber, episodeName, description, caption } = req.body;
+    let { isFree } = req.body;
+
+    console.log('isFree::', isFree, isLocked);
     const videoFile = req.file;
 
     if (!videoFile) {
@@ -166,12 +248,11 @@ exports.createEpisode = async (req, res) => {
         message: 'Video is required'
       });
     }
-
-     // Verify user exists
-     const user = await User.findById(userId);
-     if (!user) {
-       return res.status(404).json({ error: 'User not found' });
-     }
+    // Verify user exists
+    const user = await User.findById(userId);
+    if (!user) {
+      return res.status(404).json({ error: 'User not found' });
+    }
 
     if (!episodeNumber || !episodeName || !description) {
       return res.status(400).json({
@@ -223,15 +304,27 @@ exports.createEpisode = async (req, res) => {
     // Upload video to Cloudinary
     const videoUpload = await uploadToCloudinary(videoFile);
 
+    if(isFree === 'true') {
+      isLocked = false;
+      isFree = true;
+    } else {
+      isFree = false;
+    }
+
+    console.log('islocked::', isLocked);
+
     // Create new episode
     const episode = await ReelEpisodes.create({
       episodeNumber,
       episodeName,
       description,
       caption,
+      isFree,
+      isLocked,
       userId: user._id,
       videoUrl: videoUpload.secure_url,
-      reelId
+      reelId,
+      unlockedBy: []
     });
 
     res.status(201).json({
@@ -240,6 +333,7 @@ exports.createEpisode = async (req, res) => {
       data: episode
     });
   } catch (error) {
+    console.error('Error in createEpisode:', error);
     res.status(500).json({
       success: false,
       message: 'Error creating episode',
@@ -247,6 +341,51 @@ exports.createEpisode = async (req, res) => {
     });
   }
 };
+
+// Get all episodes for a reel by reel id
+exports.getApprovedReelEpisodes = async (req, res) => {
+  try {
+    const { reelId } = req.params;
+
+    // Check if the reel exists
+    const reel = await Reels.findById(reelId).where({ status: 'approved' });
+    if (!reel) {
+      return res.status(404).json({
+        success: false,
+        message: 'Reel not found'
+      });
+    }
+
+    // Get all episodes for this reel
+    const episodes = await ReelEpisodes.find({ reelId })
+      .where({ status: 'approved' })
+      .sort({ episodeNumber: 1 }) // Sort by episode number
+      .populate('reelId', 'title description')
+      .populate('likes', 'username')
+      .populate('saves', 'username')
+      .lean();
+
+    // Ensure each episode has valid likes and saves arrays
+    const processedEpisodes = episodes.map(episode => ({
+      ...episode,
+      likes: Array.isArray(episode.likes) ? episode.likes : [],
+      saves: Array.isArray(episode.saves) ? episode.saves : []
+    }));
+
+    res.status(200).json({
+      success: true,
+      count: processedEpisodes.length,
+      data: processedEpisodes
+    });
+  } catch (error) {
+    res.status(500).json({
+      success: false,
+      message: 'Error getting episodes',
+      error: error.message
+    });
+  }
+};
+
 
 // Get all episodes for a reel by reel id
 exports.getReelEpisodes = async (req, res) => {
@@ -291,6 +430,60 @@ exports.getReelEpisodes = async (req, res) => {
   }
 };
 
+// unlock the episode
+exports.unlockEpisode = async (req, res) => {
+  try {
+    const { episodeId } = req.params;
+    const userId = req.user.id;
+
+    // Check if the episode exists
+    const episode = await ReelEpisodes.findById(episodeId);
+    if (!episode) {
+      return res.status(404).json({
+        success: false,
+        message: 'Episode not found'
+      });
+    }
+
+    // Check if the episode is already free
+    if (episode.isFree) {
+      return res.status(400).json({ 
+        success: false,
+        message: 'This episode is already free to watch' 
+      });
+    }
+
+    // Check if the user has already unlocked the episode
+    const hasUnlocked = episode.unlockedBy.some(unlock => unlock.toString() === userId);
+    
+    if (hasUnlocked) {
+      return res.status(200).json({ 
+        success: true,
+        message: 'You have already unlocked this episode',
+        episode
+      });
+    }
+
+    // Unlock the episode for this user
+    episode.unlockedBy.push(userId);
+    await episode.save();
+
+    res.status(200).json({ 
+      success: true,
+      message: 'Episode unlocked successfully',
+      episode
+    });
+  } catch (err) {
+    console.error('Error in unlockEpisode:', err);
+    res.status(500).json({
+      success: false,
+      message: 'Error unlocking episode',
+      error: err.message
+    });
+  }
+};
+
+
 // Get all episodes list
 exports.getAllEpisodes = async (req, res) => {
   try {
@@ -316,13 +509,14 @@ exports.getAllEpisodes = async (req, res) => {
 exports.updateEpisode = async (req, res) => {
   try {
     const { episodeId } = req.params;
-    const { episodeName, description, caption } = req.body;
+    const { episodeName, description, caption, isFree } = req.body;
     const videoFile = req.file;
 
     const updateData = {
       episodeName,
       description,
-      caption
+      caption,
+      isFree
     };
 
     // If a new video is uploaded, upload it to Cloudinary
@@ -442,11 +636,15 @@ exports.getEpisode = async (req, res) => {
     }
 
     const episode = await ReelEpisodes.findById(episodeId)
-      .populate('userId', 'name email')
+      .populate('userId', 'name email profilePicture')
       .populate('reelId', 'title description')
       .populate('likes', 'username')
       .populate('saves', 'username')
       .lean(); // Convert to plain JavaScript object
+
+      // like count
+      episode.likeCount = episode.likes.length;
+      episode.saveCount = episode.saves.length;
 
     if (!episode) {
       return res.status(404).json({

@@ -21,16 +21,16 @@ const { height } = Dimensions.get('window');
 
 const profile = () => {
     const [keyboardVisible, setKeyboardVisible] = useState(false);
-    const { user, isLoading } = useAuth();
-    // console.log(user?.id);
+    const { user, isLoading, token } = useAuth();
+    const queryClient = useQueryClient();
 
-    if (isLoading) {
-        return <Text>Loading...</Text>;
-    }
+    // Move the token check inside the query function instead of using early returns
+    const { data: karmaPoints } = useQuery({
+        queryKey: ['karmaPoints'],
+        queryFn: () => token ? getKarmaPoints(token) : null,
+        enabled: !!token
+    });
 
-    if (!user) {
-        return <Text>Not logged in</Text>;
-    }
     useEffect(() => {
         const keyboardDidShowListener = Keyboard.addListener(
             'keyboardDidShow',
@@ -52,153 +52,158 @@ const profile = () => {
         };
     }, []);
 
-    const { token } = useAuth();
+    // Render loading/error states after all hooks have been called
+    const renderContent = () => {
+        if (isLoading) {
+            return <Text>Loading...</Text>;
+        }
 
-    if (!token) {
-        return <Text>No token</Text>
-    }
+        if (!user) {
+            return <Text>Not logged in</Text>;
+        }
 
-    const queryClient = useQueryClient();
+        if (!token) {
+            return <Text>No token</Text>
+        }
 
-    const { data: karmaPoints } = useQuery({
-        queryKey: ['karmaPoints'],
-        queryFn: () => getKarmaPoints(token),
-    });
-    return (
-        <SafeAreaView className="bg-secondary h-full flex-1 relative">
+        return (
+            <SafeAreaView className="bg-secondary h-full flex-1 relative">
 
-            <ScrollView className="flex-1 h-full" showsVerticalScrollIndicator={false}>
-                {/* Header Section */}
-                <View className="w-full px-1" style={{ borderBottomLeftRadius: 20, borderBottomRightRadius: 20 }}>
-                    <ImageBackground
-                        source={images.bgImage}
-                        resizeMode="cover"
-                        className="w-full pt-0 mt-0"
-                        style={{ height: height * 0.20, borderBottomLeftRadius: 20, borderBottomRightRadius: 20, overflow: 'hidden', }}
-                    >
-                        <View className="flex-row justify-between items-center w-full px-4 mt-10">
-                            {/* Back Button */}
-                            <TouchableOpacity onPress={() => router.push('/')}>
-                                <View className="border-2 border-primary rounded-full h-11 w-11 items-center justify-center">
-                                    <FontAwesome name="angle-left" size={25} color="#fff" />
-                                </View>
-                            </TouchableOpacity>
-                            {/* Search Bar */}
-                            <View className="flex-1 mx-3">
-                                <View className="relative w-full rounded-full justify-center">
-                                    <Feather
-                                        name="search"
-                                        size={18}
-                                        color="#fff"
-                                        style={{ position: 'absolute', left: 12, top: 13 }}
-                                    />
-                                    <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
-                                    >
-                                        <TextInput
-                                            className="text-white pl-10 pr-4 w-full py-[10px] border-2  border-primary rounded-full text-[16px]"
-                                            placeholder="Search"
-                                            placeholderTextColor="#fff"
-                                            autoFocus={false}
-                                            returnKeyType="search"
+                <ScrollView className="flex-1 h-full" showsVerticalScrollIndicator={false}>
+                    {/* Header Section */}
+                    <View className="w-full px-1" style={{ borderBottomLeftRadius: 20, borderBottomRightRadius: 20 }}>
+                        <ImageBackground
+                            source={images.bgImage}
+                            resizeMode="cover"
+                            className="w-full pt-0 mt-0"
+                            style={{ height: height * 0.20, borderBottomLeftRadius: 20, borderBottomRightRadius: 20, overflow: 'hidden', }}
+                        >
+                            <View className="flex-row justify-between items-center w-full px-4 mt-10">
+                                {/* Back Button */}
+                                <TouchableOpacity onPress={() => router.push('/')}>
+                                    <View className="border-2 border-primary rounded-full h-11 w-11 items-center justify-center">
+                                        <FontAwesome name="angle-left" size={25} color="#fff" />
+                                    </View>
+                                </TouchableOpacity>
+                                {/* Search Bar */}
+                                <View className="flex-1 mx-3">
+                                    <View className="relative w-full rounded-full justify-center">
+                                        <Feather
+                                            name="search"
+                                            size={18}
+                                            color="#fff"
+                                            style={{ position: 'absolute', left: 12, top: 13 }}
                                         />
-                                    </KeyboardAvoidingView>
+                                        <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                                        >
+                                            <TextInput
+                                                className="text-white pl-10 pr-4 w-full py-[10px] border-2  border-primary rounded-full text-[16px]"
+                                                placeholder="Search"
+                                                placeholderTextColor="#fff"
+                                                autoFocus={false}
+                                                returnKeyType="search"
+                                            />
+                                        </KeyboardAvoidingView>
+                                    </View>
+                                </View>
+
+                                {/* Settings & Notifications */}
+                                <View className="flex-row gap-3">
+                                    <View className="border-2 border-primary rounded-full h-11 w-11 items-center justify-center">
+                                        <FontAwesome name="gear" size={20} color="#fff" />
+                                    </View>
+                                    <View className="border-2 border-primary rounded-full h-11 w-11 items-center justify-center">
+                                        <FontAwesome name="bell" size={20} color="#fff" />
+                                    </View>
                                 </View>
                             </View>
+                        </ImageBackground>
+                    </View>
 
-                            {/* Settings & Notifications */}
-                            <View className="flex-row gap-3">
-                                <View className="border-2 border-primary rounded-full h-11 w-11 items-center justify-center">
-                                    <FontAwesome name="gear" size={20} color="#fff" />
+                    {/* Profile Section */}
+                    <View className='w-full px-6'>
+                        <View className='flex-row justify-center items-center mt-[-40px]'>
+                            <View className='flex-row gap-3 items-center'>
+                                <Image source={images.gankarPhuensum} className="w-[100px] h-[100px] border-2 border-white rounded-full" />
+                            </View>
+                        </View>
+                        <View className='flex-row justify-center items-center mt-3'>
+                            <Text className="text-white text-[18px] font-semibold">{user?.name}</Text>
+                        </View>
+                    </View>
+                    <View className='flex-row justify-center gap-20 items-center mt-5'>
+                        <View className='flex-col justify-between items-center'>
+                            <Text className="text-2xl text-white font-bold">
+                                120
+                            </Text>
+                            <Text className="text-lg text-[#A7A7A7] font-semibold mt-2">
+                                Following
+                            </Text>
+                        </View>
+                        <View className='flex-col justify-between items-center'>
+                            <Text className="text-2xl text-white font-bold">
+                                20K
+                            </Text>
+                            <Text className="text-lg text-[#A7A7A7] font-semibold mt-2">
+                                Followers
+                            </Text>
+                        </View>
+                    </View>
+                    <View className='flex-row justify-center items-center mt-4'>
+                        <View className='bg-white/75 rounded-full h-11 w-[100px] flex-row items-center justify-center gap-2'>
+                            <FontAwesome name="edit" size={20} color="#606060" />
+                            <Text className='text-[#606060]'>Edit</Text>
+                        </View>
+                    </View>
+
+                    {/* Karma Point */}
+                    <View className='flex-row justify-center items-center gap-1 px-6 mt-5'>
+                        <View className='w-[85%] bg-primary/50 px-6 py-3 rounded-[30px] flex-row justify-between items-center'>
+                            <View>
+                                <View className='pt-2'>
+                                    <Text className="text-white text-[16px] font-[400]">Karma Point</Text>
                                 </View>
-                                <View className="border-2 border-primary rounded-full h-11 w-11 items-center justify-center">
-                                    <FontAwesome name="bell" size={20} color="#fff" />
+                                <View className='w-full py-3 flex-row justify-start items-center gap-2'>
+                                    <Image source={icons.rewardPoints} className="size-[20px]" />
+                                    <Text className="text-white text-[20px] font-semibold">{karmaPoints?.points}</Text>
                                 </View>
                             </View>
-                        </View>
-                    </ImageBackground>
-                </View>
-
-                {/* Profile Section */}
-                <View className='w-full px-6'>
-                    <View className='flex-row justify-center items-center mt-[-40px]'>
-                        <View className='flex-row gap-3 items-center'>
-                            <Image source={images.gankarPhuensum} className="w-[100px] h-[100px] border-2 border-white rounded-full" />
-                        </View>
-                    </View>
-                    <View className='flex-row justify-center items-center mt-3'>
-                        <Text className="text-white text-[18px] font-semibold">{user?.name}</Text>
-                    </View>
-                </View>
-                <View className='flex-row justify-center gap-20 items-center mt-5'>
-                    <View className='flex-col justify-between items-center'>
-                        <Text className="text-2xl text-white font-bold">
-                            120
-                        </Text>
-                        <Text className="text-lg text-[#A7A7A7] font-semibold mt-2">
-                            Following
-                        </Text>
-                    </View>
-                    <View className='flex-col justify-between items-center'>
-                        <Text className="text-2xl text-white font-bold">
-                            20K
-                        </Text>
-                        <Text className="text-lg text-[#A7A7A7] font-semibold mt-2">
-                            Followers
-                        </Text>
-                    </View>
-                </View>
-                <View className='flex-row justify-center items-center mt-4'>
-                    <View className='bg-white/75 rounded-full h-11 w-[100px] flex-row items-center justify-center gap-2'>
-                        <FontAwesome name="edit" size={20} color="#606060" />
-                        <Text className='text-[#606060]'>Edit</Text>
-                    </View>
-                </View>
-
-                {/* Karma Point */}
-                <View className='flex-row justify-center items-center gap-1 px-6 mt-5'>
-                    <View className='w-[85%] bg-primary/50 px-6 py-3 rounded-[30px] flex-row justify-between items-center'>
-                        <View>
-                            <View className='pt-2'>
-                                <Text className="text-white text-[16px] font-[400]">Karma Point</Text>
-                            </View>
-                            <View className='w-full py-3 flex-row justify-start items-center gap-2'>
-                                <Image source={icons.rewardPoints} className="size-[20px]" />
-                                <Text className="text-white text-[20px] font-semibold">{karmaPoints?.points}</Text>
+                            <View>
+                                <TouchableOpacity onPress={() => router.push('/reward')} className='w-full h-[50px] px-4 bg-primary rounded-[30px] flex justify-center items-center'>
+                                    <Text className='text-white text-[16px]'>Refill Coins</Text>
+                                </TouchableOpacity>
                             </View>
                         </View>
-                        <View>
-                            <TouchableOpacity onPress={() => router.push('/reward')} className='w-full h-[50px] px-4 bg-primary rounded-[30px] flex justify-center items-center'>
-                                <Text className='text-white text-[16px]'>Refill Coins</Text>
-                            </TouchableOpacity>
+                    </View>
+                    {/* Profile Tab view  */}
+                    <TabView userId={user?.id} />
+
+                </ScrollView>
+                {!keyboardVisible && (
+                    <View className='flex-row justify-center w-full items-center absolute bottom-10 z-50'>
+                        <View className='flex-row justify-between items-center w-[85%] bg-[#9E8EB8]/50 rounded-[35px] px-3 mt-10 py-3'>
+                            <View className='w-[48%]'>
+                                <TouchableOpacity className='w-full h-[50px] bg-primary rounded-[30px] flex justify-center items-center'>
+                                    <Text className='text-white text-[16px]'>LIVE</Text>
+                                </TouchableOpacity>
+                            </View>
+                            <View className='w-[48%]'>
+                                <TouchableOpacity
+                                    className='w-full h-[50px] bg-[#B9CDEE]/20 rounded-[30px] flex justify-center items-center'
+                                    onPress={() => router.push('/upload/reels-upload')}
+                                >
+                                    <Text className='text-white text-[16px]'>UPLOAD</Text>
+                                </TouchableOpacity>
+                            </View>
                         </View>
                     </View>
-                </View>
-                {/* Profile Tab view  */}
-                <TabView userId={user?.id} />
+                )}
+            </SafeAreaView>
+        );
+    };
 
-            </ScrollView>
-            {!keyboardVisible && (
-                <View className='flex-row justify-center w-full items-center absolute bottom-10 z-50'>
-                    <View className='flex-row justify-between items-center w-[85%] bg-[#9E8EB8]/50 rounded-[35px] px-3 mt-10 py-3'>
-                        <View className='w-[48%]'>
-                            <TouchableOpacity className='w-full h-[50px] bg-primary rounded-[30px] flex justify-center items-center'>
-                                <Text className='text-white text-[16px]'>LIVE</Text>
-                            </TouchableOpacity>
-                        </View>
-                        <View className='w-[48%]'>
-                            <TouchableOpacity
-                                className='w-full h-[50px] bg-[#B9CDEE]/20 rounded-[30px] flex justify-center items-center'
-                                onPress={() => router.push('/upload/reels-upload')}
-                            >
-                                <Text className='text-white text-[16px]'>UPLOAD</Text>
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-                </View>
-            )}
-        </SafeAreaView>
-
-    )
+    // Return the content after all hooks have been called
+    return renderContent();
 }
 
 export default profile

@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { getAllUsers, totalUsers, getUserById, updateUser, deleteUser } = require('../controllers/userController');
+const { getAllUsers, totalUsers, getUserById, updateUser, deleteUser, forgotPassword, resetPasswordConfirmationCode, resetPassword } = require('../controllers/userController');
 const { authenticate } = require('../middlewares/authMiddleware');
 
 /**
@@ -197,5 +197,80 @@ router.put('/:id', authenticate, updateUser);
  *         description: User not found
  */
 router.delete('/:id', authenticate, deleteUser);
+
+/**
+ * @swagger
+ * /users/forgot-password:
+ *   post:
+ *     summary: Request a password reset code
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset email sent
+ *       404:
+ *         description: User not found
+ */
+router.post('/forgot-password', forgotPassword);
+
+/**
+ * @swagger
+ * /users/confirm-reset-code:
+ *   post:
+ *     summary: Confirm password reset code
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               confirmationCode:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password confirmed
+ *       401:
+ *         description: Invalid confirmation code
+ *       404:
+ *         description: User not found
+ */
+router.post('/confirm-reset-code', resetPasswordConfirmationCode);
+
+/**
+ * @swagger
+ * /users/reset-password:
+ *   post:
+ *     summary: Reset password
+ *     tags: [Users]
+ *     requestBody:
+ *       required: true
+ *       content:
+ *         application/json:
+ *           schema:
+ *             type: object
+ *             properties:
+ *               email:
+ *                 type: string
+ *               newPassword:
+ *                 type: string
+ *     responses:
+ *       200:
+ *         description: Password reset successfully
+ *       404:
+ *         description: User not found
+ */
+router.post('/reset-password', resetPassword);
 
 module.exports = router;

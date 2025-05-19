@@ -5,9 +5,17 @@ const reelEpisodeSchema = new mongoose.Schema({
   episodeName: { type: String, required: true },
   description: { type: String, required: true },
   caption: { type: String },
+  isFree: { type: Boolean, default: false },
+  isLocked: { type: Boolean, default: true },
   videoUrl: { type: String },
   likes: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
   saves: [{ type: mongoose.Schema.Types.ObjectId, ref: 'User' }],
+  unlockedBy: [{ 
+    type: mongoose.Schema.Types.ObjectId, 
+    ref: 'User',
+    _id: false,
+    timestamp: { type: Date, default: Date.now }
+  }],  
   userId: { type: mongoose.Schema.Types.ObjectId, ref: 'User', required: true },
   status: {
     type: String,

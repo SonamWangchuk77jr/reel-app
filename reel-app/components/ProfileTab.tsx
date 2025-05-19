@@ -5,6 +5,7 @@ import { getReelByUserId } from '@/api/reels';
 import { VideoView, useVideoPlayer } from 'expo-video';
 import { useReels } from '@/context/ReelsContext';
 import { router } from 'expo-router';
+import { useAuth } from '@/context/AuthContext';
 
 const { width } = Dimensions.get('window');
 const COLUMN_COUNT = 3;
@@ -58,13 +59,16 @@ const TabView = ({ userId }: { userId: string }) => {
     const [loading, setLoading] = useState(true);
     const { reels, setReels, refreshReels } = useReels();
 
-    // console.log('Reels:', reels);
-    // console.log('User ID:', userId);
+    // token
+    const token = useAuth().token;
+    if (!token) {
+        return <Text>No token</Text>
+    }
 
     useEffect(() => {
         const fetchReels = async () => {
             try {
-                const fetchedReels = await getReelByUserId(userId);
+                const fetchedReels = await getReelByUserId(token);
                 setReels(fetchedReels);
             } catch (error) {
                 console.error('Error fetching reels:', error);

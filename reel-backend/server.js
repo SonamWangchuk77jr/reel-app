@@ -14,6 +14,7 @@ const reelsRoutes = require('./routes/reelsRoutes');
 const episodesRoutes = require('./routes/reelEpisodesRoutes');
 const adsRoutes = require('./routes/adsRoutes');
 const reportRoutes = require('./routes/reportRoutes');
+const karmaPointsRoutes = require('./routes/karmaPointsRouts');
 
 const app = express();
 
@@ -32,7 +33,7 @@ app.use('/api/reels', reelsRoutes);
 app.use('/api/episodes', episodesRoutes);
 app.use('/api/ads', adsRoutes);
 app.use('/api', reportRoutes);
-
+app.use('/api/karma-points', karmaPointsRoutes);
 // Root route
 app.get('/', (req, res) => {
   res.send('🎬 API is running...');

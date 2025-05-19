@@ -10,9 +10,12 @@ cloudinary.config({
   api_secret: process.env.CLOUDINARY_API_SECRET   
 });
 
+
 module.exports = {
   PORT: process.env.PORT || 5000,
   MONGO_URI: process.env.MONGO_URI,
   JWT_SECRET: process.env.JWT_SECRET,
   cloudinary, // Export the cloudinary instance
+  EMAIL: process.env.EMAIL,
+  EMAIL_PASSWORD: process.env.EMAIL_PASSWORD
 };

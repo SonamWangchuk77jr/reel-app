@@ -10,7 +10,9 @@ const { authenticate, authorize } = require('../middlewares/authMiddleware');
 router.get('/', authenticate, adsController.getAds);
 router.post('/', videoUpload.single('adsVideoUrl'),authenticate, authorize('Admin'), adsController.createAds);
 router.delete('/:id', authenticate,authorize('Admin'), adsController.deleteAds);
+router.get('/random/:point', authenticate, adsController.getRandomShuffledAdsByPoint);
 router.get('/total', authenticate, authorize('Admin'), adsController.totalAds);
+
 
 module.exports = router;
 
@@ -90,6 +92,31 @@ module.exports = router;
  *       401:
  *         description: Unauthorized
  */
+
+/**
+ * @swagger
+ * /ads/random/{point}:
+ *   get:
+ *     summary: Get a random ad by point
+ *     tags: [Ads]
+ *     parameters:
+ *       - name: point
+ *         in: path
+ *         required: true
+ *         description: The point of the ad
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: A random ad by point
+ *       400:
+ *         description: Bad request
+ *       401:
+ *         description: Unauthorized
+ *       404:
+ *         description: No ads found for this point
+ */
+
 
 /**
  * @swagger
