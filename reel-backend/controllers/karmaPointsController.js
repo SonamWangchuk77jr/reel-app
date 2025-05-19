@@ -35,11 +35,8 @@ exports.getKarmaPoints = async (req, res) => {
     try {
         // Check if the user exists
         const karmaPoints = await KarmaPoints.findOne({ userId });
-        if (!karmaPoints) {
-            return res.status(404).json({ message: 'Karma points not found' });
-        }
 
-        res.status(200).json(karmaPoints);
+        res.status(200).json(karmaPoints|| { points: 0 });
     } catch (error) {
         console.error('Error getting karma points:', error);
         res.status(500).json({ message: 'Failed to get karma points' });
