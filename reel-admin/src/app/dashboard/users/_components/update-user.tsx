@@ -54,9 +54,9 @@ const UpdateUserModal: React.FC<UpdateUserModalProps> = ({ open, onOpenChange, u
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
                 <DialogHeader>
-                    <DialogTitle>Update Category</DialogTitle>
+                    <DialogTitle>Update User</DialogTitle>
                     <DialogDescription>
-                        Update the user name below.
+                        Update the user name and email below.
                     </DialogDescription>
                 </DialogHeader>
                 <form onSubmit={handleUpdate} className="space-y-4">

@@ -44,7 +44,7 @@ export function getUser(): UserType | null {
 
 export async function getAuthUser(): Promise<UserType> {
     const user = getUser();
-    const response = await fetch('http://localhost:5001/api/auth/me', {
+    const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/auth/me`, {
       method: 'GET',
       headers: {
         'Accept': '*/*',
@@ -53,9 +53,8 @@ export async function getAuthUser(): Promise<UserType> {
     });
   
     if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+        return { token: '', user: { id: '', name: '', email: '', role: '', status: '', createdAt: '', updatedAt: '', profilePicture: '' } };
     }
-  
     const data: UserType = await response.json();
     return data;
   }

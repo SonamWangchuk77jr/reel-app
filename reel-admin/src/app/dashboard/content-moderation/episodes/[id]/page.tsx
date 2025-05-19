@@ -7,7 +7,7 @@ import { useParams } from "next/navigation";
 import React, { useEffect, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Label } from "@/components/ui/label";
-import { FileTextIcon, TagIcon, CheckCircleIcon, ClockIcon, XCircleIcon, UserIcon, CalendarIcon, Edit3Icon } from "lucide-react";
+import { FileTextIcon, TagIcon, CheckCircleIcon, ClockIcon, XCircleIcon, UserIcon, CalendarIcon, Edit3Icon, ArrowLeftIcon } from "lucide-react";
 import { Skeleton } from "@/components/ui/skeleton";
 import { getUser } from "@/lib/auth";
 import { toast } from "sonner";
@@ -145,7 +145,10 @@ export default function EpisodePage() {
             <CardHeader className="gap-4">
                 <div className="flex items-center gap-3 mb-2">
                     <Link href="/dashboard/content-moderation">
-                        <Button variant="secondary" size="sm">Back</Button>
+                        <Button size="sm">
+                            <ArrowLeftIcon className="w-4 h-4 mr-2" />
+                            Back
+                        </Button>
                     </Link>
                     <CardTitle className="text-2xl font-bold capitalize">
                         {episode?.episodeName || 'Episode Details'}
