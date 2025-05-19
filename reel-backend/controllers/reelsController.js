@@ -84,14 +84,13 @@ exports.getAllReels = async (req, res) => {
   }
 };
 
+// Get all reels by user ID
 exports.getAllReelsByUserId = async (req, res) => {
-  const { userId } = req.params; // or req.query, depending on how you pass it
-
   try {
+    const userId = req.user.id;
     const reels = await Reels.find({ userId })
       .populate('userId', 'name email profilePicture')
       .sort({ createdAt: -1 });
-
     res.json(reels);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -224,6 +223,68 @@ exports.toggleSave = async (req, res) => {
   }
 };
 
+exports.hasLiked = async (req, res) => {
+  try {
+    const { id: reelId } = req.params;
+    const userId = req.user.id;
+
+    console.log('reelId::', reelId, 'userId::', userId);
+
+    if (!reelId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reel ID and User ID are required'
+      });
+    }
+
+    const reel = await Reels.findById(reelId);
+    if (!reel) {
+      return res.status(404).json({
+        success: false,
+        message: 'Reel not found'
+      });
+    }
+
+    const hasLiked = reel.likes.includes(userId);
+    res.status(200).json({
+      success: true,
+      hasLiked
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.hasSaved = async (req, res) => {
+  try {
+    const { id:reelId } = req.params;
+    const userId = req.user.id;
+
+    if (!reelId || !userId) {
+      return res.status(400).json({
+        success: false,
+        message: 'Reel ID and User ID are required'
+      });
+    }
+
+    const reel = await Reels.findById(reelId);
+    if (!reel) {
+      return res.status(404).json({
+        success: false,
+        message: 'Reel not found'
+      });
+    }
+
+    const hasSaved = reel.saves.includes(userId);
+    res.status(200).json({
+      success: true,
+      hasSaved
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.getUserSavedReels = async (req, res) => {
   try {
     const userId = req.user.id;
@@ -236,56 +297,6 @@ exports.getUserSavedReels = async (req, res) => {
     .sort({ createdAt: -1 });
 
     res.json(savedReels);
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-exports.removeLike = async (req, res) => {
-  try {
-    const reel = req.reel; // Get reel from middleware
-    const userId = req.user.id;
-
-    // Check if user has liked the reel
-    const hasLiked = reel.likes.includes(userId);
-    
-    if (!hasLiked) {
-      return res.status(400).json({ error: 'You have not liked this reel' });
-    }
-
-    // Remove the like
-    reel.likes = reel.likes.filter(id => id.toString() !== userId);
-    await reel.save();
-
-    res.json({ 
-      message: 'Like removed successfully',
-      reel
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
-  }
-};
-
-exports.removeSave = async (req, res) => {
-  try {
-    const reel = req.reel; // Get reel from middleware
-    const userId = req.user.id;
-
-    // Check if user has saved the reel
-    const hasSaved = reel.saves.includes(userId);
-    
-    if (!hasSaved) {
-      return res.status(400).json({ error: 'You have not saved this reel' });
-    }
-
-    // Remove the save
-    reel.saves = reel.saves.filter(id => id.toString() !== userId);
-    await reel.save();
-
-    res.json({ 
-      message: 'Save removed successfully',
-      reel
-    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

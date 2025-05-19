@@ -77,16 +77,15 @@ exports.getDailyKarmaPoints = async (req, res) => {
         let karmaPoints = await KarmaPoints.findOne({ userId });
 
         const today = new Date();
-        today.setHours(0, 0, 0, 0); // normalize to midnight for comparison
+        today.setHours(0, 0, 0, 0); // normalize
 
         if (!karmaPoints) {
-            // First time: create new document and grant points
+            // First time
             karmaPoints = new KarmaPoints({
                 userId,
                 points: dailyPoints,
                 lastDailyPointsDate: today,
-                currentStreakDay: 1,
-                dailyPoints: true
+                currentStreakDay: 1
             });
             await karmaPoints.save();
             return res.status(200).json({ points: karmaPoints.points, currentStreakDay: 1, message: "Day 1 reward granted!" });
@@ -95,32 +94,22 @@ exports.getDailyKarmaPoints = async (req, res) => {
         const lastDate = karmaPoints.lastDailyPointsDate ? new Date(karmaPoints.lastDailyPointsDate) : null;
         if (lastDate) lastDate.setHours(0, 0, 0, 0);
 
-        // Already claimed today
-        if (lastDate && lastDate.getTime() === today.getTime() && karmaPoints.dailyPoints === true) {
+        if (lastDate && lastDate.getTime() === today.getTime()) {
             return res.status(400).json({ message: "Daily points already claimed today.", currentStreakDay: karmaPoints.currentStreakDay });
         }
 
-        // Check if yesterday was last claim
         const yesterday = new Date(today);
         yesterday.setDate(today.getDate() - 1);
 
         let newStreakDay = 1;
         if (lastDate && lastDate.getTime() === yesterday.getTime()) {
-            // Continue streak
             newStreakDay = karmaPoints.currentStreakDay < 6 ? karmaPoints.currentStreakDay + 1 : 1;
         }
-        // else: missed a day, reset to 1
 
         karmaPoints.points += dailyPoints;
         karmaPoints.lastDailyPointsDate = today;
         karmaPoints.currentStreakDay = newStreakDay;
-        karmaPoints.dailyPoints = true;
         await karmaPoints.save();
-
-        if (lastDate && lastDate.getTime() !== today.getTime() && karmaPoints.dailyPoints === true) {
-            karmaPoints.dailyPoints = false;
-            await karmaPoints.save();
-        }
 
         return res.status(200).json({ points: karmaPoints.points, currentStreakDay: newStreakDay, message: `Day ${newStreakDay} reward granted!` });
 
@@ -129,6 +118,7 @@ exports.getDailyKarmaPoints = async (req, res) => {
         res.status(500).json({ message: 'Failed to get daily karma points' });
     }
 };
+
 
 // Delete a user's KarmaPoints document
 exports.deleteRewardPoint = async (req, res) => {

@@ -5,36 +5,32 @@ const reelsController = require('../controllers/reelsController');
 const { authenticate, authorize } = require('../middlewares/authMiddleware');
 const validateReel = require('../middlewares/reelValidationMiddleware');
 
+
+router.post('/create',videoUpload.single('video'),authenticate,reelsController.createReel);
+router.get('/', reelsController.getAllReels);
+router.get('/user',authenticate, reelsController.getAllReelsByUserId);
+router.get('/total', authenticate, reelsController.totalReels);
+router.get('/approved', reelsController.getAllReelsWithStatusApproved);
+router.get('/saved', authenticate, reelsController.getUserSavedReels);
+router.get('/:id', validateReel, reelsController.getReelById);
+router.put('/:id',validateReel,authenticate,authorize('User'),reelsController.updateReel);
+router.patch('/:id/status',validateReel,authenticate,reelsController.updateReelStatus);
+router.post('/:id/like',validateReel,authenticate,reelsController.toggleLike);
+router.post('/:id/save',validateReel,authenticate,reelsController.toggleSave);
+router.get('/:id/liked-check',validateReel,authenticate,reelsController.hasLiked);
+router.get('/:id/saved-check',validateReel,authenticate,reelsController.hasSaved);
+router.delete('/:id',validateReel,authenticate,reelsController.deleteReel);
+
+module.exports = router;
+
+
+// Swagger
+
 /**
  * @swagger
- * components:
- *   schemas:
- *     Reel:
- *       type: object
- *       required:
- *         - title
- *         - video
- *       properties:
- *         title:
- *           type: string
- *           description: The title of the reel
- *         description:
- *           type: string
- *           description: The description of the reel
- *         video:
- *           type: string
- *           format: binary
- *           description: The video file
- *         likes:
- *           type: number
- *           description: Number of likes
- *         saves:
- *           type: number
- *           description: Number of saves
- *         status:
- *           type: string
- *           enum: [pending, approved, rejected]
- *           description: Status of the reel
+ * tags:
+ *   name: Reels
+ *   description: Reels management
  */
 
 /**
@@ -52,9 +48,6 @@ const validateReel = require('../middlewares/reelValidationMiddleware');
  *           schema:
  *             type: object
  *             properties:
- *               video:
- *                 type: string
- *                 format: binary
  *               title:
  *                 type: string
  *               description:
@@ -62,22 +55,17 @@ const validateReel = require('../middlewares/reelValidationMiddleware');
  *               category:
  *                 type: string
  *                 enum: [food, travel, fashion, lifestyle, beauty, fitness, technology, other]
+ *               video:
+ *                 type: string
+ *                 format: binary
  *     responses:
  *       201:
  *         description: Reel created successfully
  *       400:
- *         description: Invalid input
+ *         description: Bad request
  *       401:
  *         description: Unauthorized
- *       500:
- *         description: Server error
  */
-router.post(
-    '/create',
-    videoUpload.single('video'),
-    authenticate,
-    reelsController.createReel
-);
 
 /**
  * @swagger
@@ -87,18 +75,26 @@ router.post(
  *     tags: [Reels]
  *     responses:
  *       200:
- *         description: List of all reels
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Reel'
+ *         description: List of reels
  *       500:
  *         description: Server error
  */
-router.get('/', reelsController.getAllReels);
-
+/**
+ * @swagger
+ * /reels/user:
+ *   get:
+ *     summary: Get all reels by user ID
+ *     tags: [Reels]
+ *     security:
+ *       - bearerAuth: []
+ *     responses:
+ *       200:
+ *         description: List of reels
+ *       401:
+ *         description: Unauthorized
+ *       500:
+ *         description: Server error
+ */
 
 /**
  * @swagger
@@ -111,107 +107,63 @@ router.get('/', reelsController.getAllReels);
  *     responses:
  *       200:
  *         description: Total number of reels
+ *       401:
+ *         description: Unauthorized
  */
-
-router.get('/total', authenticate, reelsController.totalReels);
 
 /**
  * @swagger
  * /reels/approved:
  *   get:
- *     summary: Get all approved reels
+ *     summary: Get all reels with status approved
  *     tags: [Reels]
  *     responses:
  *       200:
- *         description: List of all approved reels
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Reel'
+ *         description: List of reels
  *       500:
  *         description: Server error
  */
-router.get('/approved', reelsController.getAllReelsWithStatusApproved);
 
 /**
  * @swagger
  * /reels/saved:
  *   get:
- *     summary: Get all saved reels for the authenticated user
+ *     summary: Get all saved reels
  *     tags: [Reels]
  *     security:
  *       - bearerAuth: []
  *     responses:
  *       200:
- *         description: List of saved reels
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Reel'
+ *         description: List of reels
  *       401:
  *         description: Unauthorized
  *       500:
  *         description: Server error
  */
-router.get('/saved', authenticate, reelsController.getUserSavedReels);
 
 /**
  * @swagger
  * /reels/{id}:
  *   get:
- *     summary: Get a specific reel by ID
+ *     summary: Get reel by ID
  *     tags: [Reels]
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
  *         schema:
  *           type: string
+ *         required: true
  *         description: Reel ID
  *     responses:
  *       200:
  *         description: Reel details
- *         content:
- *           application/json:
- *             schema:
- *               $ref: '#/components/schemas/Reel'
+ *       400:
+ *         description: Invalid reel ID
  *       404:
  *         description: Reel not found
  *       500:
  *         description: Server error
  */
-router.get('/:id', validateReel, reelsController.getReelById);
-
-/**
- * @swagger
- * /reels/user/{userId}:
- *   get:
- *     summary: Get all reels by user ID
- *     tags: [Reels]
- *     parameters:
- *       - in: path
- *         name: userId
- *         required: true
- *         schema:
- *           type: string
- *         description: User ID
- *     responses:
- *       200:
- *         description: List of reels by user
- *         content:
- *           application/json:
- *             schema:
- *               type: array
- *               items:
- *                 $ref: '#/components/schemas/Reel'
- *       500:
- *         description: Server error
- */
-router.get('/user/:userId', reelsController.getAllReelsByUserId);
 
 /**
  * @swagger
@@ -224,9 +176,9 @@ router.get('/user/:userId', reelsController.getAllReelsByUserId);
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
  *         schema:
  *           type: string
+ *         required: true
  *         description: Reel ID
  *     requestBody:
  *       required: true
@@ -239,11 +191,14 @@ router.get('/user/:userId', reelsController.getAllReelsByUserId);
  *                 type: string
  *               description:
  *                 type: string
+ *               category:
+ *                 type: string
+ *                 enum: [food, travel, fashion, lifestyle, beauty, fitness, technology, other]
  *     responses:
  *       200:
  *         description: Reel updated successfully
  *       400:
- *         description: Invalid input
+ *         description: Bad request
  *       401:
  *         description: Unauthorized
  *       404:
@@ -251,28 +206,21 @@ router.get('/user/:userId', reelsController.getAllReelsByUserId);
  *       500:
  *         description: Server error
  */
-router.put(
-    '/:id',
-    validateReel,
-    authenticate,
-    authorize('User'),
-    reelsController.updateReel
-);
 
 /**
  * @swagger
  * /reels/{id}/status:
  *   patch:
- *     summary: Update reel status (Admin only)
+ *     summary: Update reel status
  *     tags: [Reels]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
  *         schema:
  *           type: string
+ *         required: true
  *         description: Reel ID
  *     requestBody:
  *       required: true
@@ -283,27 +231,19 @@ router.put(
  *             properties:
  *               status:
  *                 type: string
- *                 enum: [pending, approved, rejected]
+ *                 enum: [approved, pending, rejected]
  *     responses:
  *       200:
- *         description: Status updated successfully
+ *         description: Reel status updated successfully
  *       400:
- *         description: Invalid input
+ *         description: Bad request
  *       401:
  *         description: Unauthorized
- *       403:
- *         description: Forbidden (Admin access required)
  *       404:
  *         description: Reel not found
  *       500:
  *         description: Server error
  */
-router.patch(
-    '/:id/status',
-    validateReel,
-    authenticate,
-    reelsController.updateReelStatus
-);
 
 /**
  * @swagger
@@ -316,25 +256,15 @@ router.patch(
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
  *         schema:
  *           type: string
+ *         required: true
  *         description: Reel ID
  *     responses:
  *       200:
- *         description: Like status toggled successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 reel:
- *                   $ref: '#/components/schemas/Reel'
- *                 action:
- *                   type: string
- *                   enum: [liked, unliked]
+ *         description: Like toggled successfully
+ *       400:
+ *         description: Bad request
  *       401:
  *         description: Unauthorized
  *       404:
@@ -342,7 +272,6 @@ router.patch(
  *       500:
  *         description: Server error
  */
-router.post('/:id/like', validateReel, authenticate, reelsController.toggleLike);
 
 /**
  * @swagger
@@ -355,25 +284,15 @@ router.post('/:id/like', validateReel, authenticate, reelsController.toggleLike)
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
  *         schema:
  *           type: string
+ *         required: true
  *         description: Reel ID
  *     responses:
  *       200:
- *         description: Save status toggled successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 reel:
- *                   $ref: '#/components/schemas/Reel'
- *                 action:
- *                   type: string
- *                   enum: [saved, unsaved]
+ *         description: Save toggled successfully
+ *       400:
+ *         description: Bad request
  *       401:
  *         description: Unauthorized
  *       404:
@@ -381,37 +300,27 @@ router.post('/:id/like', validateReel, authenticate, reelsController.toggleLike)
  *       500:
  *         description: Server error
  */
-router.post('/:id/save', validateReel, authenticate, reelsController.toggleSave);
 
 /**
  * @swagger
- * /reels/{id}/remove-like:
- *   delete:
- *     summary: Remove a like from a reel
+ * /reels/{id}/liked-check:
+ *   get:
+ *     summary: Check if user has liked a reel
  *     tags: [Reels]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
  *         schema:
  *           type: string
+ *         required: true
  *         description: Reel ID
  *     responses:
  *       200:
- *         description: Like removed successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 reel:
- *                   $ref: '#/components/schemas/Reel'
+ *         description: Like check successful
  *       400:
- *         description: User has not liked this reel
+ *         description: Bad request
  *       401:
  *         description: Unauthorized
  *       404:
@@ -419,37 +328,27 @@ router.post('/:id/save', validateReel, authenticate, reelsController.toggleSave)
  *       500:
  *         description: Server error
  */
-router.delete('/:id/remove-like', validateReel, authenticate, reelsController.removeLike);
 
 /**
  * @swagger
- * /reels/{id}/remove-save:
- *   delete:
- *     summary: Remove a save from a reel
+ * /reels/{id}/saved-check:
+ *   get:
+ *     summary: Check if user has saved a reel
  *     tags: [Reels]
  *     security:
  *       - bearerAuth: []
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
  *         schema:
  *           type: string
+ *         required: true
  *         description: Reel ID
  *     responses:
  *       200:
- *         description: Save removed successfully
- *         content:
- *           application/json:
- *             schema:
- *               type: object
- *               properties:
- *                 message:
- *                   type: string
- *                 reel:
- *                   $ref: '#/components/schemas/Reel'
+ *         description: Save check successful
  *       400:
- *         description: User has not saved this reel
+ *         description: Bad request
  *       401:
  *         description: Unauthorized
  *       404:
@@ -457,7 +356,6 @@ router.delete('/:id/remove-like', validateReel, authenticate, reelsController.re
  *       500:
  *         description: Server error
  */
-router.delete('/:id/remove-save', validateReel, authenticate, reelsController.removeSave);
 
 /**
  * @swagger
@@ -470,13 +368,15 @@ router.delete('/:id/remove-save', validateReel, authenticate, reelsController.re
  *     parameters:
  *       - in: path
  *         name: id
- *         required: true
  *         schema:
  *           type: string
+ *         required: true
  *         description: Reel ID
  *     responses:
  *       200:
  *         description: Reel deleted successfully
+ *       400:
+ *         description: Bad request
  *       401:
  *         description: Unauthorized
  *       404:
@@ -484,14 +384,4 @@ router.delete('/:id/remove-save', validateReel, authenticate, reelsController.re
  *       500:
  *         description: Server error
  */
-router.delete(
-    '/:id',
-    validateReel,
-    authenticate,
-    reelsController.deleteReel
-);
-
-
-module.exports = router;
-
 
