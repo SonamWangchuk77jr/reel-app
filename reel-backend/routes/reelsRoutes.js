@@ -20,6 +20,7 @@ router.post('/:id/save',validateReel,authenticate,reelsController.toggleSave);
 router.get('/:id/liked-check',validateReel,authenticate,reelsController.hasLiked);
 router.get('/:id/saved-check',validateReel,authenticate,reelsController.hasSaved);
 router.delete('/:id',validateReel,authenticate,reelsController.deleteReel);
+router.get('/category/:category', reelsController.getReelsByCategory);
 
 module.exports = router;
 
@@ -385,3 +386,22 @@ module.exports = router;
  *         description: Server error
  */
 
+/**
+ * @swagger
+ * /reels/category/{category}:
+ *   get:
+ *     summary: Get reels by category
+ *     tags: [Reels]
+ *     parameters:
+ *       - in: path
+ *         name: category
+ *         schema:
+ *           type: string
+ *         required: true
+ *         description: Category name
+ *     responses:
+ *       200:
+ *         description: List of reels
+ *       500:
+ *         description: Server error
+ */

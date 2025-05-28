@@ -1,49 +1,131 @@
+import { getReelsByCategory } from "@/api/reels";
+import { getReelsCategory } from "@/api/reelsCategory";
 import Logout from "@/components/Logout";
-import ReelPlayCard from "@/components/ReelPlayCard";
 import SliderBanner from "@/components/SliderBanner";
 import { icons } from "@/constants/icons";
-import { images } from "@/constants/image";
-import React from "react";
+import { useQuery } from "@tanstack/react-query";
+import React, { useState } from "react";
 import {
   SafeAreaView,
   Text, View, ScrollView,
-  TouchableOpacity, Image
+  TouchableOpacity, Image, ActivityIndicator
 } from "react-native";
+import { VideoView, useVideoPlayer } from 'expo-video';
+import { useRouter } from 'expo-router';
 
+interface Category {
+  _id: string;
+  name: string;
+}
 
-const reelsCategories = [
-  { id: 1, name: "All" },
-  { id: 2, name: "Trending" },
-  { id: 3, name: "Following" },
-  { id: 4, name: "Favorites" },
-  { id: 5, name: "Following" },
-  { id: 6, name: "Favorites" },
-  { id: 7, name: "Favorites" },
-];
+interface ReelItem {
+  _id: string;
+  video: string;
+  title: string;
+}
 
-const mostTrending = [
-  { id: 1, name: "Fantasy", image: images.cham2 },
-  { id: 2, name: "Thriller", image: images.bhudhaPoint },
-  { id: 3, name: "Horror", image: images.paroTakstang },
-  { id: 4, name: "Sci Fiction", image: images.gankarPhuensum },
-];
+const ReelCard = ({ item, router }: { item: ReelItem, router: any }) => {
+  const [isLoading, setIsLoading] = useState(true);
+  const player = useVideoPlayer(item.video, (p) => {
+    p.loop = false;
+    p.muted = true;
+    p.pause();
+    setIsLoading(false);
+  });
 
-const mostTrendingDrama = [
-  { id: 1, name: "Drama", image: images.paroTakstang },
-  { id: 2, name: "Culture", image: images.bhudhaPoint },
-  { id: 3, name: "Horror", image: images.cham2 },
-  { id: 4, name: "Sci Fiction", image: images.gankarPhuensum },
-];
+  return (
+    <TouchableOpacity
+      key={item._id}
+      className="w-[140px] h-[200px] bg-primary/20 rounded-xl overflow-hidden"
+      onPress={() => router.push({
+        pathname: '/reels-episodes/[reelId]',
+        params: { reelId: item._id }
+      })}
+    >
+      <View className="relative w-full h-full">
+        {item.video ? (
+          <>
+            <View className="w-full h-full">
+              <VideoView
+                player={player}
+                style={{
+                  width: '100%',
+                  height: '100%',
+                  position: 'absolute',
+                  top: 0,
+                  left: 0,
+                }}
+                contentFit="cover"
+              />
+              {isLoading && (
+                <View className="absolute inset-0 bg-gray-200 items-center justify-center">
+                  <ActivityIndicator size="small" color="#0000ff" />
+                </View>
+              )}
+            </View>
+          </>
+        ) : (
+          <View className="w-full h-full bg-primary/20 items-center justify-center">
+            <Text className="text-white/80">No Video</Text>
+          </View>
+        )}
 
-const trendingHistory = [
-  { id: 1, name: "Fantasy", image: images.cham },
-  { id: 2, name: "Culture", image: images.bhudhaPoint },
-  { id: 3, name: "Horror", image: images.paroTakstang },
-  { id: 4, name: "Sci Fiction", image: images.gankarPhuensum },
-];
+        {/* Bottom gradient overlay */}
+        <View className="absolute bottom-0 left-0 right-0 h-1/3 bg-gradient-to-t from-black/80 to-transparent" />
 
+        {/* Title and user info */}
+        <View className="absolute bottom-2 left-2 right-2">
+          <Text
+            className="text-white text-sm font-medium"
+            numberOfLines={1}
+            ellipsizeMode="tail"
+          >
+            {item.title || 'Untitled Reel'}
+          </Text>
+        </View>
+
+        {/* Play button overlay */}
+        <View className="absolute inset-0 items-center justify-center">
+          <View className="bg-primary/80 rounded-full p-2">
+            <Image
+              source={icons.play}
+              tintColor="#ffffff"
+              className="w-4 h-4"
+            />
+          </View>
+        </View>
+      </View>
+    </TouchableOpacity>
+  );
+};
 
 export default function Index() {
+  const [selectedCategory, setSelectedCategory] = useState("all");
+  const router = useRouter();
+
+  // get category list
+  const { data: categoryData, isLoading: isCategoriesLoading } = useQuery({
+    queryKey: ['categoryList'],
+    queryFn: () => getReelsCategory(),
+  });
+
+  const handleCategoryChange = (category: string) => {
+    setSelectedCategory(category);
+  };
+
+  // get reels by category
+  const { data: reelsData, isLoading: isReelsLoading, refetch } = useQuery({
+    queryKey: ['reelsByCategory', selectedCategory],
+    queryFn: () => getReelsByCategory(selectedCategory),
+    enabled: true, // Ensure the query runs when the component mounts
+  });
+
+  // Extract categories from the response data
+  const categories = categoryData?.data?.data || [];
+
+  // Extract reels from the response data
+  const reels = reelsData || [];
+
   return (
     <SafeAreaView className="bg-secondary h-full flex-1">
       <ScrollView className="flex-1 h-full" showsVerticalScrollIndicator={false}>
@@ -66,72 +148,49 @@ export default function Index() {
         {/* Reels Category */}
         <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
           <View className="px-6 mt-10 flex-row items-center gap-[10px] justify-between">
-            {reelsCategories.map((category) => (
-              <TouchableOpacity key={category.id} className="bg-primary px-3 py-2 rounded-[15px]">
+            {/* by default all */}
+            <TouchableOpacity
+              key="all"
+              className={`px-3 py-2 rounded-[15px] ${selectedCategory === "all" ? "bg-primary" : "bg-primary/20"}`}
+              onPress={() => handleCategoryChange("all")}
+            >
+              <Text className="text-[#B9CDEE]/80 text-[16px]">All</Text>
+            </TouchableOpacity>
+
+            {categories.map((category: Category) => (
+              <TouchableOpacity
+                key={category._id}
+                className={`px-3 py-2 rounded-[15px] ${selectedCategory === category.name ? "bg-primary" : "bg-primary/20"}`}
+                onPress={() => handleCategoryChange(category.name)}
+              >
                 <Text className="text-[#B9CDEE]/80 text-[16px]">{category.name}</Text>
               </TouchableOpacity>
             ))}
           </View>
         </ScrollView>
 
-        {/* Most Trending Section */}
+        {/* Reel List Section */}
         <View>
-          <View className="flex-row items-center justify-between px-6 mt-10">
-            <Text className="text-[#B9CDEE]/80 font-bold text-2xl">Most Trending</Text>
-            <Text className="text-[15px] text-[#B9CDEE]/80">View all</Text>
+          <View className="flex-row items-center justify-between px-6 mt-10 mb-5">
+            <Text className="text-[#B9CDEE]/80 font-bold text-2xl">Watch Reels</Text>
           </View>
-          <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-            <View className="flex-row items-center gap-[15px] px-6 mt-4 w-full">
-              {mostTrending.map((item) => (
-                <View key={item.id} className="bg-primary w-[160px] h-[200px] rounded-[15px]">
-                  <Image source={item.image} className="w-full h-full rounded-[15px]" />
-                  <View className="absolute bottom-0 left-0 right-0  px-3 py-4">
-                    <Text className="text-white text-[15px] font-font-[300]">{item.name}</Text>
-                  </View>
-                  <View className="absolute bottom-10 right-0 px-3 py-4">
-                    <TouchableOpacity className="bg-primary rounded-full p-3">
-                      <Image source={icons.play} tintColor="#ffff" className="size-4" />
-                    </TouchableOpacity>
-                  </View>
-                </View>
-              ))}
-            </View>
-          </ScrollView>
-        </View>
 
-        {/* Most Trending Drama */}
-        <View>
-          <View className="flex-row items-center justify-between px-6 mt-10">
-            <Text className="text-[#B9CDEE]/80 font-bold text-2xl">Trending Drama</Text>
-            <Text className="text-[15px] text-[#B9CDEE]/80">View all</Text>
-          </View>
-          <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-            <View className="flex-row items-center gap-[15px] px-6 mt-4 w-full">
-              {mostTrendingDrama.map((item) => (
-                <ReelPlayCard key={item.id} title={item.name} image={item.image} />
-              ))}
-              <ReelPlayCard title="Drama" image={images.cham} />
+          {/* Reels List */}
+          {isReelsLoading ? (
+            <View className="flex-1 items-center justify-center py-10">
+              <ActivityIndicator size="large" color="#0000ff" />
             </View>
-          </ScrollView>
+          ) : (
+            <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
+              <View className="flex-row flex-wrap px-4 gap-4 w-full mb-10">
+                {reels.map((item: ReelItem) => (
+                  <ReelCard key={item._id} item={item} router={router} />
+                ))}
+              </View>
+            </ScrollView>
+          )}
         </View>
-
-        {/* Trending History */}
-        <View className="mb-6">
-          <View className="flex-row items-center justify-between px-6 mt-10">
-            <Text className="text-[#B9CDEE]/80 font-bold text-2xl">Trending History</Text>
-            <Text className="text-[15px] text-[#B9CDEE]/80">View all</Text>
-          </View>
-          <ScrollView horizontal={true} showsHorizontalScrollIndicator={false}>
-            <View className="flex-row items-center gap-[15px] px-6 mt-4 w-full">
-              {trendingHistory.map((item) => (
-                <ReelPlayCard key={item.id} title={item.name} image={item.image} />
-              ))}
-            </View>
-          </ScrollView>
-        </View>
-
       </ScrollView>
     </SafeAreaView>
   );
 }
-

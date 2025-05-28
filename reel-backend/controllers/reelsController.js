@@ -312,4 +312,26 @@ exports.totalReels = async (req, res) => {
   }
 }
 
+// get reels by category
+exports.getReelsByCategory = async (req, res) => {
+  try {
+    const category = req.params.category;
+    // if all then get all reels
+    if (category === 'all') {
+      const reels = await Reels.find()
+        .populate('userId', 'name email profilePicture')
+        .sort({ createdAt: -1 });
+      return res.json(reels);
+    }
+    // else get reels by category
+    const reels = await Reels.find({ category })
+      .populate('userId', 'name email profilePicture')
+      .sort({ createdAt: -1 });
+    return res.json(reels);
+  } catch (err) {
+    return res.status(500).json({ error: err.message });
+  }
+};
+
+
 

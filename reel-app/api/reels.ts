@@ -180,3 +180,15 @@ export const getSavedReels = async (token: string): Promise<Reel[]> => {
     }
 };
 
+// get reels by category
+export const getReelsByCategory = async (category: string): Promise<Reel[]> => {
+    try {
+        const response = await axios.get(`${baseURL}/api/reels/category/${category}`);
+        
+        return response.data;
+    } catch (error: any) {
+        throw new Error(error.response?.data?.message || "Failed to fetch reels by category");
+    }
+
+};
+
