@@ -27,7 +27,7 @@ import { useForm } from 'react-hook-form'
 import { zodResolver } from '@hookform/resolvers/zod'
 import { z } from 'zod'
 
-export const forgotPassword = async (email: string) => {
+const forgotPassword = async (email: string) => {
     try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/forgot-password`, {
             method: 'POST',
@@ -48,7 +48,7 @@ export const forgotPassword = async (email: string) => {
     }
 };
 
-export const resetPasswordConfirmationCode = async (email: string, confirmationCode: string) => {
+const resetPasswordConfirmationCode = async (email: string, confirmationCode: string) => {
     try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/confirm-reset-code`, {
             method: 'POST',
@@ -69,7 +69,7 @@ export const resetPasswordConfirmationCode = async (email: string, confirmationC
     }
 };
 
-export const resetPassword = async (email: string, newPassword: string) => {
+const resetPassword = async (email: string, newPassword: string) => {
     try {
         const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/reset-password`, {
             method: 'POST',
@@ -116,7 +116,7 @@ const passwordSchema = z.object({
     path: ["confirmPassword"],
 });
 
-function ForgotPasswordPage() {
+export default function ForgotPasswordPage() {
     const [step, setStep] = useState<1 | 2 | 3>(1);
     const [email, setEmail] = useState("");
     const [loading, setLoading] = useState(false);
@@ -454,4 +454,4 @@ function ForgotPasswordPage() {
     )
 }
 
-export default ForgotPasswordPage
+
