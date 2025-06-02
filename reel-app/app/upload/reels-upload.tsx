@@ -102,9 +102,9 @@ export default function ReelsUpload() {
         const fetchCategories = async () => {
             try {
                 const response = await getReelsCategory();
-                if (response && response.data && Array.isArray(response.data)) {
-                    setCategories(response.data);
-                    const formattedItems = response.data.map((category: Category) => ({
+                if (response && response.data.data && Array.isArray(response.data.data)) {
+                    setCategories(response.data.data);
+                    const formattedItems = response.data.data.map((category: Category) => ({
                         label: category.name,
                         value: category.name
                     }));
